@@ -14,7 +14,7 @@ from skimage import util
 from skimage.morphology import reconstruction
 from skimage.morphology import watershed
 from skimage.measure import regionprops
-from skimage.segmentation import find_boundaries
+from skimage.measure import find_contours
 
 FILENAME = '/Users/wmallard/Desktop/Microscopy/test.tif'
 
@@ -44,28 +44,24 @@ object_labels = watershed(im_filled, connectivity=8)
 
 #%% Step 2: Fit Contours
 
-def get_cell_boundary_coords(object_labels, boundaries, cell_id):
+def get_cell_boundary_coords(object_labels, cell_id):
     '''
     Find the boundary coordinates of a particular cell.
-
+    
     Arguments:
         object_labels - int matrix; labels which object each pixel belongs to
-        boundaries - bool matrix; labels whether a pixel is a boundary
         cell_id - specifies which object to find the boundary coords of
+    
+    Returns:
+        X, Y - coordinates of the cell's boundary,
+               ordered counter clockwise around the contour
     '''
     cell_mask = object_labels == cell_id
-    cell_boundary = boundaries & cell_mask
 
-    props = regionprops(cell_boundary.astype(int))
-    assert len(props) == 1
-    p = props[0]
-
-    X = p.coords.T[0]
-    Y = p.coords.T[1]
+    c = find_contours(cell_mask, level=.9)
+    Y, X = c[0].T
 
     return X, Y
-
-boundaries = find_boundaries(object_labels)
 
 # TODO: Pre-compute smoothed image force components.
 
@@ -74,7 +70,7 @@ boundaries = find_boundaries(object_labels)
 #    pass
 cell_id = 2
 
-X, Y = get_cell_boundary_coords(object_labels, boundaries, cell_id)
+X, Y = get_cell_boundary_coords(object_labels, cell_id)
 
 # Interpolate along curve to obtain evenly spaced spline anchors.
 #
