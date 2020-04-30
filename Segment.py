@@ -107,7 +107,6 @@ def evenly_distribute_contour_points(X_old, Y_old):
     return X_new, Y_new
 
 # Pre-compute smoothed image force components.
-
 Fx = sobel_v(im)
 Fy = sobel_h(im)
 
@@ -118,14 +117,11 @@ y_mesh = np.arange(Sy)
 Fx_smoothed = RectBivariateSpline(y_mesh, x_mesh, Fx)
 Fy_smoothed = RectBivariateSpline(y_mesh, x_mesh, Fy)
 
-
 # TODO: Loop over all cells.
 # num_cells = object_labels.max() + 1
 # for cell_id in range(num_cells):
 #     X, Y = get_cell_boundary_coords(object_labels, cell_id)
 #     if X is None: continue
-#     print(f'Cell #{cell_id}: X:({X.min()}, {X.max()}) Y:({Y.min()}, {Y.max()})')
-
 cell_id = 6
 
 # Get the pixel coordinates of current cell's boundary,
@@ -151,10 +147,8 @@ for i in range(max_iter):
     Fx_new = Fx_smoothed.ev(Y_new, X_new)
     Fy_new = Fy_smoothed.ev(Y_new, X_new)
     
-    X_new = X_new + step_size * Fx_new
-    Y_new = Y_new + step_size * Fy_new
-    
-    X_old, Y_old = X_new, Y_new
+    X_old = X_new + step_size * Fx_new
+    Y_old = Y_new + step_size * Fy_new
 
 contour = np.vstack((X_old, Y_old)).T
 
