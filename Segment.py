@@ -16,6 +16,11 @@ from skimage.morphology import watershed
 from skimage.measure import find_contours
 from skimage.filters import sobel_h, sobel_v
 from scipy.interpolate import RectBivariateSpline
+from scipy.spatial import Voronoi
+from collections import defaultdict
+
+import matplotlib.pyplot as plt
+from matplotlib import path
 
 FILENAME = '/Users/wmallard/Desktop/Microscopy/test.tif'
 
@@ -146,3 +151,153 @@ for i in range(max_iter):
     X_old, Y_old = X_new, Y_new
 
 contour = np.vstack((X_old, Y_old)).T
+
+#%% Step 3: Construct Skeleton
+
+# Construct a voronoi diagram.
+# Extract its vertices and edges.
+vor = Voronoi(contour)
+V = vor.vertices
+E = vor.ridge_vertices
+
+# Identify which vertices are in the contour's interior.
+p = path.Path(contour)
+I = p.contains_points(V)
+
+# Build a connectivity graph of all edges in the contour's interior.
+# 
+# Use a dictionary where:
+#   - k: vertex index
+#   - v: list of vertex indices
+# These all index into V.
+C = defaultdict(list)
+
+for u, v in E:
+
+    # Remove edges connecting to points at infinity.
+    if u < 0: continue
+    if v < 0: continue
+
+    # Remove edges connecting to vertices outside the contour.
+    if not I[u]: continue
+    if not I[v]: continue
+
+    # Connect vertex u to v and v to u.
+    C[u].append(v)
+    C[v].append(u)
+
+# Find the vertex closest to the contour's centroid.
+vertices = np.array(V)
+centroid = contour.mean(axis=0)
+
+distances_to_centroid = np.sum((vertices - centroid)**2, axis=1)
+central_vertex_idx = np.argmin(distances_to_centroid)
+central_vertex = V[central_vertex_idx]
+
+# Build a list of all non-branching edges.
+#
+# Start from the vertex closest to the centroid and work outward.
+# No need to check for:
+#   - cycles because Voronoi diagrams are acyclic.
+#   - disjoint subgraphs because Voronoi diagrams are fully connected.
+Branches = []
+vertices_to_walk = []
+
+root = central_vertex_idx
+
+next_v = root
+next_v_neighbors = C[next_v]
+
+for n in next_v_neighbors:
+    C[n].remove(next_v)
+    vertices_to_walk.append(n)
+
+while vertices_to_walk:
+
+    # Start a new branch.
+    branch = []
+    print()
+    print(f'[{n}] New branch.')
+    print()
+    print(f'Stack: {vertices_to_walk}')
+    print()
+    print(f'this_v: {this_v}')
+
+    # Get the next vertex.
+    next_v = vertices_to_walk.pop()
+    print(f'next_v: {next_v} : {C[next_v]}')
+
+    # Find the next vertex.
+    next_v_neighbors = C[next_v]
+
+    print()
+    print('State entering loop:')
+    print(f'*** this_v: {this_v} : {C[this_v]}')
+    print(f'*** next_v: {next_v} : {C[next_v]}')
+    print(f'*** Branch: {branch}')
+    print()
+
+    while len(next_v_neighbors) == 1:
+
+        print()
+        print(f'next_v: {next_v} : {C[next_v]}')
+        print(f'Branch: {branch}')
+        print()
+
+        # Advance to next vertex.
+        this_v = next_v
+        next_v = next_v_neighbors[0]
+
+        # Add this vertex to the branch.
+        branch.append(this_v)
+
+        # Find the next vertex.
+        next_v_neighbors = C[next_v]
+        next_v_neighbors.remove(this_v)
+
+    branch.append(next_v)
+
+    # Add the forking neighbors to the list of vertices to walk.
+    # Each is the start of a new branch.
+    for n in next_v_neighbors:
+        C[n].remove(next_v)
+        vertices_to_walk.append(n)
+
+    Branches.append(branch)
+
+    print('Hit branching vertex.')
+    print()
+    print(f'next_v: {next_v} : {next_v_neighbors}')
+    print(f'Branch: {branch}')
+    print()
+
+# Stitch together the two branches emenating from the root node.
+n1, n2 = C[root]
+
+b1 = [b for b in Branches if b[0] == n1][0]
+b2 = [b for b in Branches if b[0] == n2][0]
+main_branch = b1[::-1] + [root] + b2
+
+Branches.remove(b1)
+Branches.remove(b2)
+Branches.append(main_branch)
+
+# Find the longest branch. Make that the skeleton.
+skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
+
+skeleton = V[skel_indices]
+
+#
+# Debugging Visualizations
+#
+plt.close('all')
+cell_mask = (object_labels == cell_id).astype(np.int)
+pcolor(cell_mask)
+plt.plot(contour[:,0], contour[:,1])
+plt.scatter(*V[I].T, s=2, marker='.')
+plt.scatter(*central_vertex, marker='*', s=100, c='black')
+plt.plot(*V[skel].T, 'k.-')
+
+plt.scatter(*V[central_vertex_idx], marker='x', s=10, c='red')
+for idx in C[central_vertex_idx]:
+    plt.scatter(*V[idx], marker='x', s=10, c='red')
