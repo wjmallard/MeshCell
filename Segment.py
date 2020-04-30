@@ -216,33 +216,14 @@ while vertices_to_walk:
 
     # Start a new branch.
     branch = []
-    print()
-    print(f'[{n}] New branch.')
-    print()
-    print(f'Stack: {vertices_to_walk}')
-    print()
-    print(f'this_v: {this_v}')
 
     # Get the next vertex.
     next_v = vertices_to_walk.pop()
-    print(f'next_v: {next_v} : {C[next_v]}')
 
     # Find the next vertex.
     next_v_neighbors = C[next_v]
 
-    print()
-    print('State entering loop:')
-    print(f'*** this_v: {this_v} : {C[this_v]}')
-    print(f'*** next_v: {next_v} : {C[next_v]}')
-    print(f'*** Branch: {branch}')
-    print()
-
     while len(next_v_neighbors) == 1:
-
-        print()
-        print(f'next_v: {next_v} : {C[next_v]}')
-        print(f'Branch: {branch}')
-        print()
 
         # Advance to next vertex.
         this_v = next_v
@@ -265,12 +246,6 @@ while vertices_to_walk:
 
     Branches.append(branch)
 
-    print('Hit branching vertex.')
-    print()
-    print(f'next_v: {next_v} : {next_v_neighbors}')
-    print(f'Branch: {branch}')
-    print()
-
 # Stitch together the two branches emenating from the root node.
 n1, n2 = C[root]
 
@@ -286,18 +261,3 @@ Branches.append(main_branch)
 skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
 
 skeleton = V[skel_indices]
-
-#
-# Debugging Visualizations
-#
-plt.close('all')
-cell_mask = (object_labels == cell_id).astype(np.int)
-pcolor(cell_mask)
-plt.plot(contour[:,0], contour[:,1])
-plt.scatter(*V[I].T, s=2, marker='.')
-plt.scatter(*central_vertex, marker='*', s=100, c='black')
-plt.plot(*V[skel].T, 'k.-')
-
-plt.scatter(*V[central_vertex_idx], marker='x', s=10, c='red')
-for idx in C[central_vertex_idx]:
-    plt.scatter(*V[idx], marker='x', s=10, c='red')
