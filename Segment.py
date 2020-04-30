@@ -73,6 +73,39 @@ def get_cell_boundary_coords(object_labels, cell_id):
 
     return X, Y
 
+def evenly_distribute_contour_points(X_old, Y_old):
+
+    # Compute old coordinates along the contour with uneven spacing.
+    dx = X_old[1:] - X_old[:-1]
+    dy = Y_old[1:] - Y_old[:-1]
+    C_old = np.cumsum(np.sqrt(dx**2 + dy**2))
+    C_old = np.concatenate(([0], C_old))
+
+    # Create new coordinates along the contour with even 1-pixel spacing.
+    C_length = C_old[-1]
+    C_new = np.linspace(0, C_length, np.int(np.round(C_length)))
+    
+    # Find the distance between each new (evenly spaced) anchor point
+    # and the next-smallest old (unevenly spaced) anchor point.
+    anchor_distance = C_new[None,:] - C_old[:,None]
+    anchor_distance[anchor_distance < 0] = np.inf
+    
+    # For each new anchor point,
+    # find the index of the old anchor point immediately to its left.
+    J = np.argmin(anchor_distance, axis=0)
+
+    # Ensure the index falls between 0 and the second-to-last
+    # element of the old contour.
+    # (The final old anchor point cannot be left of any new anchor point.)
+    J = np.clip(J, 0, len(C_old) - 2)
+    
+    # Interpolate X and Y coordinates along the contour.
+    alpha = (C_new - C_old[J]) / (C_old[J+1] - C_old[J])
+    X_new = X_old[J] + (X_old[J+1] - X_old[J]) * alpha
+    Y_new = Y_old[J] + (Y_old[J+1] - Y_old[J]) * alpha
+
+    return X_new, Y_new
+
 # Pre-compute smoothed image force components.
 
 Fx = sobel_v(im)
@@ -109,34 +142,7 @@ for i in range(max_iter):
     #
     # NOTE: Assumes X-Y coordinates are sorted along the contour.
 
-    # Compute old coordinates along the contour with uneven spacing.
-    dx = X_old[1:] - X_old[:-1]
-    dy = Y_old[1:] - Y_old[:-1]
-    C_old = np.cumsum(np.sqrt(dx**2 + dy**2))
-    C_old = np.concatenate(([0], C_old))
-
-    # Create new coordinates along the contour with even 1-pixel spacing.
-    C_length = C_old[-1]
-    C_new = np.linspace(0, C_length, np.int(np.round(C_length)))
-    
-    # Find the distance between each new (evenly spaced) anchor point
-    # and the next-smallest old (unevenly spaced) anchor point.
-    anchor_distance = C_new[None,:] - C_old[:,None]
-    anchor_distance[anchor_distance < 0] = np.inf
-    
-    # For each new anchor point,
-    # find the index of the old anchor point immediately to its left.
-    J = np.argmin(anchor_distance, axis=0)
-
-    # Ensure the index falls between 0 and the second-to-last
-    # element of the old contour.
-    # (The final old anchor point cannot be left of any new anchor point.)
-    J = np.clip(J, 0, len(C_old) - 2)
-    
-    # Interpolate X and Y coordinates along the contour.
-    alpha = (C_new - C_old[J]) / (C_old[J+1] - C_old[J])
-    X_new = X_old[J] + (X_old[J+1] - X_old[J]) * alpha
-    Y_new = Y_old[J] + (Y_old[J+1] - Y_old[J]) * alpha
+    X_new, Y_new = evenly_distribute_contour_points(X_old, Y_old)
     
     # Update the anchor positions using the image gradient (to maximize the
     # alignment of the contour with the image maxima)
