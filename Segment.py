@@ -260,4 +260,9 @@ Branches.append(main_branch)
 # Find the longest branch. Make that the skeleton.
 skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
 
-skeleton = V[skel_indices]
+skel = V[skel_indices]
+
+#%% Step 4: Refine + Extend Skeleton + Find Ribs
+
+skeleton = evenly_distribute_contour_points(*skel.T)
+skeleton = np.array(skeleton)
