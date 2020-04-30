@@ -13,12 +13,15 @@ from skimage import io
 from skimage import util
 from skimage.morphology import reconstruction
 from skimage.morphology import watershed
-from skimage.measure import regionprops
 from skimage.measure import find_contours
+from skimage.filters import sobel_h, sobel_v
+from scipy.interpolate import RectBivariateSpline
 
 FILENAME = '/Users/wmallard/Desktop/Microscopy/test.tif'
 
 h_min_to_fill = 0.1 # relative to 1.0 maximum
+max_iter = 300
+step_size = 0.1
 
 im = io.imread(FILENAME, as_gray=True)
 
@@ -59,47 +62,87 @@ def get_cell_boundary_coords(object_labels, cell_id):
     cell_mask = object_labels == cell_id
 
     c = find_contours(cell_mask, level=.9)
+    if len(c) != 1: return None, None
+
     Y, X = c[0].T
 
     return X, Y
 
-# TODO: Pre-compute smoothed image force components.
+# Pre-compute smoothed image force components.
+
+Fx = sobel_v(im)
+Fy = sobel_h(im)
+
+Sy, Sx = im.shape
+x_mesh = np.arange(Sx)
+y_mesh = np.arange(Sy)
+
+Fx_smoothed = RectBivariateSpline(y_mesh, x_mesh, Fx)
+Fy_smoothed = RectBivariateSpline(y_mesh, x_mesh, Fy)
+
 
 # TODO: Loop over all cells.
-#for cell_id in range(num_cells):
-#    pass
-cell_id = 2
+# num_cells = object_labels.max() + 1
+# for cell_id in range(num_cells):
+#     X, Y = get_cell_boundary_coords(object_labels, cell_id)
+#     if X is None: continue
+#     print(f'Cell #{cell_id}: X:({X.min()}, {X.max()}) Y:({Y.min()}, {Y.max()})')
 
+cell_id = 6
+
+# Get the pixel coordinates of current cell's boundary,
+# returns X and Y that wraps around contour (no break b/w end and beginning)
 X, Y = get_cell_boundary_coords(object_labels, cell_id)
-
-# Interpolate along curve to obtain evenly spaced spline anchors.
-#
-# X -- cartesian x-coordinates
-# Y -- cartesian y-coordinates
-# C -- 1D path coordinate along the contour
-#
-# NOTE: Assumes X-Y coordinates are sorted along the contour.
 X_old, Y_old = X, Y
 
-# Compute old coordinates along the contour with uneven spacing.
-dx = X_old[1:] - X_old[:-1]
-dy = Y_old[1:] - Y_old[:-1]
-C_old = np.cumsum(np.sqrt(dx**2 + dy**2))
+for i in range(max_iter):
+    # Interpolate along curve to obtain evenly spaced spline anchors.
+    #
+    # X -- cartesian x-coordinates
+    # Y -- cartesian y-coordinates
+    # C -- 1D path coordinate along the contour
+    #
+    # NOTE: Assumes X-Y coordinates are sorted along the contour.
 
-# Create new coordinates along the contour with even 1-pixel spacing.
-C_length = np.int(np.ceil(C_old[-1]))
-C_new = np.arange(C_length)
+    # Compute old coordinates along the contour with uneven spacing.
+    dx = X_old[1:] - X_old[:-1]
+    dy = Y_old[1:] - Y_old[:-1]
+    C_old = np.cumsum(np.sqrt(dx**2 + dy**2))
+    C_old = np.concatenate(([0], C_old))
 
-# Find the distance between each new (evenly spaced) anchor point
-# and the next-smallest old (unevenly spaced) anchor point.
-anchor_distance = C_old[:,None] - C_new[None,:]
-anchor_distance[anchor_distance > 0] = -np.inf
+    # Create new coordinates along the contour with even 1-pixel spacing.
+    C_length = C_old[-1]
+    C_new = np.linspace(0, C_length, np.int(np.round(C_length)))
+    
+    # Find the distance between each new (evenly spaced) anchor point
+    # and the next-smallest old (unevenly spaced) anchor point.
+    anchor_distance = C_new[None,:] - C_old[:,None]
+    anchor_distance[anchor_distance < 0] = np.inf
+    
+    # For each new anchor point,
+    # find the index of the old anchor point immediately to its left.
+    J = np.argmin(anchor_distance, axis=0)
 
-# For each new anchor point,
-# find the index of the next-smallest old anchor point.
-J = np.argmax(anchor_distance, axis=0)
+    # Ensure the index falls between 0 and the second-to-last
+    # element of the old contour.
+    # (The final old anchor point cannot be left of any new anchor point.)
+    J = np.clip(J, 0, len(C_old) - 2)
+    
+    # Interpolate X and Y coordinates along the contour.
+    alpha = (C_new - C_old[J]) / (C_old[J+1] - C_old[J])
+    X_new = X_old[J] + (X_old[J+1] - X_old[J]) * alpha
+    Y_new = Y_old[J] + (Y_old[J+1] - Y_old[J]) * alpha
+    
+    # Update the anchor positions using the image gradient (to maximize the
+    # alignment of the contour with the image maxima)
+    # 
+    # Interpolate the smoothed image-forces at the current anchor points.
+    Fx_new = Fx_smoothed.ev(Y_new, X_new)
+    Fy_new = Fy_smoothed.ev(Y_new, X_new)
+    
+    X_new = X_new + step_size * Fx_new
+    Y_new = Y_new + step_size * Fy_new
+    
+    X_old, Y_old = X_new, Y_new
 
-# Update step.
-alpha = (C_new - C_old[J]) / (C_old[J+1] - C_old[J])
-X_new = X_old[J] + (X_old[J+1] - X_old[J]) * alpha
-Y_new = Y_old[J] + (Y_old[J+1] - Y_old[J]) * alpha
+contour = np.vstack((X_old, Y_old)).T
