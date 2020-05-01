@@ -334,3 +334,7 @@ intersection = find_segment_intersection(skeleton_ext[:-1], skeleton_ext[1:], co
 skeleton_trim = skeleton_ext
 skeleton_trim[0] = intersection[0]
 skeleton_trim[-1] = intersection[-1]
+
+# Interpolate again on the whole extended skeleton.
+skeleton_final = evenly_distribute_contour_points(skeleton_trim[:,0], skeleton_trim[:,1])
+skeleton_final = np.vstack(skeleton_final).T
