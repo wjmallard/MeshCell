@@ -262,7 +262,21 @@ skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
 
 skel = V[skel_indices]
 
-#%% Step 4: Refine + Extend Skeleton + Find Ribs
+#%% Step 4: Refine + Extend Skeleton
 
 skeleton = evenly_distribute_contour_points(*skel.T)
-skeleton = np.array(skeleton)
+skeleton = np.array(skeleton).T
+
+# TODO: Figure out how to set the extension factor in a more principled way.
+extension_factor = 20
+
+left_end = skeleton[:3]
+right_end = skeleton[-3:]
+
+left_vector = left_end[1:] - left_end[:-1]
+left_point = skeleton[1,:] - left_vector.mean(axis=0) * extension_factor
+
+right_vector = right_end[1:] - right_end[:-1]
+right_point = skeleton[-1,:] + right_vector.mean(axis=0) * extension_factor
+
+skeleton_ext = np.concatenate((left_point[None,:], skeleton, right_point[None,:]))
