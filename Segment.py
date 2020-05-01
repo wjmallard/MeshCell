@@ -338,3 +338,38 @@ skeleton_trim[-1] = intersection[-1]
 # Interpolate again on the whole extended skeleton.
 skeleton_final = evenly_distribute_contour_points(skeleton_trim[:,0], skeleton_trim[:,1])
 skeleton_final = np.vstack(skeleton_final).T
+
+#%% Step 5: Find Ribs
+
+# Construct segments along skeleton that are perpendicular to the skeleton
+# and that intersect with the contour.
+
+skeleton = skeleton_final
+
+# TODO: Figure out how to set the projection param in a more principled way.
+rib_projection_parameter = 20
+
+tangent_vectors = np.diff(skeleton, axis=0)
+tangent_vectors_smooth = (tangent_vectors[1:] + tangent_vectors[:-1]) / 2
+orthogonal_vectors = tangent_vectors_smooth[:,::-1]
+orthogonal_vectors[:,0] *= -1
+
+rib_starts = skeleton[1:-1]
+top_rib_ends = rib_starts + orthogonal_vectors * rib_projection_parameter
+bot_rib_ends = rib_starts - orthogonal_vectors * rib_projection_parameter
+
+top_intersections = find_segment_intersection(rib_starts, top_rib_ends, contour)
+bot_intersections = find_segment_intersection(rib_starts, bot_rib_ends, contour)
+
+plt.close('all')
+plt.plot(*contour.T, 'ko-')
+plt.plot(*skeleton.T, 'rx-')
+
+for i in range(len(rib_starts)):
+
+    xs, ys = rib_starts[i]
+    xt, yt = top_intersections[i]
+    xb, yb = bot_intersections[i]
+
+    plt.plot([xs, xt], [ys, yt], 'b')
+    plt.plot([xs, xb], [ys, yb], 'b')
