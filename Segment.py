@@ -280,3 +280,57 @@ right_vector = right_end[1:] - right_end[:-1]
 right_point = skeleton[-1,:] + right_vector.mean(axis=0) * extension_factor
 
 skeleton_ext = np.concatenate((left_point[None,:], skeleton, right_point[None,:]))
+
+def find_segment_intersection(L1, L2, C):
+    '''
+    Find intersection points between a list of line segments and a contour.
+
+    https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    Retrieved: April 30, 2020.
+    '''
+    assert len(L1) == len(L2)
+
+    X3, Y3 = C.T[:,:-1]
+    X4, Y4 = C.T[:,1:]
+
+    intersections = np.zeros((len(L1), 2))
+
+    for i in range(len(L1)):
+
+        x1, y1 = L1[i]
+        x2, y2 = L2[i]
+
+        D = (x1 - x2) * (Y3 - Y4) - (y1 - y2) * (X3 - X4)
+        T = (x1 - X3) * (Y3 - Y4) - (y1 - Y3) * (X3 - X4)
+        U = (x1 - x2) * (y1 - Y3) - (y1 - y2) * (x1 - X3)
+
+        T /= D
+        U /= -D
+
+        intersection_criterion = (0. <= T) & (T <= 1.) & (0. <= U) & (U <= 1.)
+
+        if intersection_criterion.any():
+            # TODO: Assumes for now only a single intersection is found per
+            # segment, but need to handle multiple intersection cases
+            intersection_index = np.where(intersection_criterion)[0]
+
+            # Calculate intersection point.
+            t = T[intersection_index]
+
+            Px = x1 + t * (x2 - x1)
+            Py = y1 + t * (y2 - y1)
+
+            intersections[i] = (Px, Py)
+
+        else:
+            intersections[i] = (np.nan, np.nan)
+
+    return intersections
+
+# TODO: Only run intersection finder on the extended segments, not whole skeleton.
+intersection = find_segment_intersection(skeleton_ext[:-1], skeleton_ext[1:], contour)
+
+# Replace skeleton extension points with contour intersection points.
+skeleton_trim = skeleton_ext
+skeleton_trim[0] = intersection[0]
+skeleton_trim[-1] = intersection[-1]
