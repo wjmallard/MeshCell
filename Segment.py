@@ -170,7 +170,7 @@ I = p.contains_points(V)
 #   - k: vertex index
 #   - v: list of vertex indices
 # These all index into V.
-C = defaultdict(list)
+Neighbors = defaultdict(list)
 
 for u, v in E:
 
@@ -183,8 +183,8 @@ for u, v in E:
     if not I[v]: continue
 
     # Connect vertex u to v and v to u.
-    C[u].append(v)
-    C[v].append(u)
+    Neighbors[u].append(v)
+    Neighbors[v].append(u)
 
 # Find the vertex closest to the contour's centroid.
 vertices = np.array(V)
@@ -206,10 +206,9 @@ vertices_to_walk = []
 root = central_vertex_idx
 
 next_v = root
-next_v_neighbors = C[next_v]
 
-for n in next_v_neighbors:
-    C[n].remove(next_v)
+for n in Neighbors[next_v]:
+    Neighbors[n].remove(next_v)
     vertices_to_walk.append(n)
 
 while vertices_to_walk:
@@ -220,34 +219,30 @@ while vertices_to_walk:
     # Get the next vertex.
     next_v = vertices_to_walk.pop()
 
-    # Find the next vertex.
-    next_v_neighbors = C[next_v]
-
-    while len(next_v_neighbors) == 1:
+    while len(Neighbors[next_v]) == 1:
 
         # Advance to next vertex.
         this_v = next_v
-        next_v = next_v_neighbors.pop()
+        next_v = Neighbors[next_v].pop()
 
         # Add this vertex to the branch.
         branch.append(this_v)
 
-        # Find the next vertex.
-        next_v_neighbors = C[next_v]
-        next_v_neighbors.remove(this_v)
+        # Prevent backtracking.
+        Neighbors[next_v].remove(this_v)
 
     branch.append(next_v)
 
     # Add the forking neighbors to the list of vertices to walk.
     # Each is the start of a new branch.
-    for n in next_v_neighbors:
-        C[n].remove(next_v)
+    for n in Neighbors[next_v]:
+        Neighbors[n].remove(next_v)
         vertices_to_walk.append(n)
 
     Branches.append(branch)
 
 # Stitch together the two branches emenating from the root node.
-n1, n2 = C[root]
+n1, n2 = Neighbors[root]
 
 b1 = [b for b in Branches if b[0] == n1][0]
 b2 = [b for b in Branches if b[0] == n2][0]
