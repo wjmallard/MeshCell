@@ -186,22 +186,20 @@ for u, v in E:
     Neighbors[u].append(v)
     Neighbors[v].append(u)
 
-# Find the vertex closest to the contour's centroid.
-vertices = np.array(V)
-centroid = contour.mean(axis=0)
-
-distances_to_centroid = np.sum((vertices - centroid)**2, axis=1)
-central_vertex_idx = np.argmin(distances_to_centroid)
-central_vertex = V[central_vertex_idx]
-
 # Build a list of all non-branching edges.
 #
-# Start from the vertex closest to the centroid and work outward.
+# Find all leaf nodes. Pick any one of them and start walking.
+#
 # No need to check for:
 #   - cycles because Voronoi diagrams are acyclic.
 #   - disjoint subgraphs because Voronoi diagrams are fully connected.
-root = central_vertex_idx
-n1, n2 = Neighbors[root]
+#
+# TODO: Fork nodes do not appear on all branches emanating from them,
+#       so the skeleton is missing one vertex. Fix this!
+#       Rather than pushing all the fork node's neighbors,
+#       maybe push the fork node itself?
+Leaves = [k for k, v in Neighbors.items() if len(v) == 1]
+root = Leaves[0]
 
 Branches = []
 vertices_to_walk = [root]
@@ -211,8 +209,6 @@ while vertices_to_walk:
 
     # Start a new branch.
     branch = []
-
-    # Get the next vertex.
     next_v = vertices_to_walk.pop()
 
     while len(Neighbors[next_v]) == 1:
@@ -224,26 +220,20 @@ while vertices_to_walk:
         # Add this vertex to the branch.
         branch.append(this_v)
 
-        # Prevent backtracking.
+        # Remove this vertex from the
+        # next vertex's neighbor list.
         Neighbors[next_v].remove(this_v)
 
+    # Finish the branch.
     branch.append(next_v)
     Branches.append(branch)
 
-    # Add neighbors to the list of vertices to walk.
+    # Add the final vertex's neighbors
+    # to the list of vertices to walk.
     while Neighbors[next_v]:
         n = Neighbors[next_v].pop()
         Neighbors[n].remove(next_v)
         vertices_to_walk.append(n)
-
-# Stitch together the two branches emenating from the root node.
-b1 = [b for b in Branches if b[0] == n1][0]
-b2 = [b for b in Branches if b[0] == n2][0]
-main_branch = b1[::-1] + [root] + b2
-
-Branches.remove(b1)
-Branches.remove(b2)
-Branches.append(main_branch)
 
 # Find the longest branch. Make that the skeleton.
 skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
