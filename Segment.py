@@ -50,6 +50,8 @@ def fill_image_to_min_height(image, h_min):
 im_filled = fill_image_to_min_height(im, h_min_to_fill)
 object_labels = watershed(im_filled, connectivity=8)
 
+# TODO: Filter out objects that are too small or too big.
+
 #%% Step 2: Fit Contours
 
 def get_cell_boundary_coords(object_labels, cell_id):
@@ -360,14 +362,14 @@ fig = plt.figure(figsize=(10, 6), dpi=100)
 axes = fig.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
 
 ax = axes[0][0]
-ax.pcolor(im, cmap='Greys_r')
+ax.imshow(im, cmap='Greys_r')
 
 ax = axes[0][1]
-ax.pcolor(im_filled, cmap='Greys_r')
+ax.imshow(im_filled, cmap='Greys_r')
 
 ax = axes[0][2]
 dc = .5 * np.ones((2,1))
-ax.pcolor(im, cmap='Greys_r', alpha=.2)
+ax.imshow(im, cmap='Greys_r', alpha=.2)
 ax.plot(*contour.T + dc, 'r:')
 
 ax = axes[1][0]
@@ -395,13 +397,26 @@ for i in range(len(rib_starts)):
     ax.plot([xs, xt], [ys, yt], 'r', linewidth=1)
     ax.plot([xs, xb], [ys, yb], 'r', linewidth=1)
 
-dxy = 5  # pixels
-xlim = X.min() - dxy, X.max() + dxy
-ylim = Y.min() - dxy, Y.max() + dxy
+# Find width of longest dimension.
+wx = X.max() - X.min()
+wy = Y.max() - Y.min()
+dist_from_center_to_edge = max(wx, wy) / 2
 
+# Find center of square.
+cx = (X.min() + X.max()) / 2
+cy = (Y.min() + Y.max()) / 2
+
+# Find new xy limits.
+pad = 5  # pixels
+xmin = cx - dist_from_center_to_edge - pad
+xmax = cx + dist_from_center_to_edge + pad
+ymin = cy - dist_from_center_to_edge - pad
+ymax = cy + dist_from_center_to_edge + pad
+
+# Set xy limits.
 ax = axes[0][0]
-ax.set_xlim(xlim)
-ax.set_ylim(ylim)
+ax.set_xlim((xmin, xmax))
+ax.set_ylim((ymin, ymax))
 
 fig.tight_layout()
 
