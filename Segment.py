@@ -200,20 +200,20 @@ central_vertex = V[central_vertex_idx]
 # No need to check for:
 #   - cycles because Voronoi diagrams are acyclic.
 #   - disjoint subgraphs because Voronoi diagrams are fully connected.
-Branches = []
-vertices_to_walk = []
-
 root = central_vertex_idx
 n1, n2 = Neighbors[root]
 
+Branches = []
+vertices_to_walk = [root]
 next_v = root
 
-while Neighbors[next_v]:
-    n = Neighbors[next_v].pop()
-    Neighbors[n].remove(next_v)
-    vertices_to_walk.append(n)
-
 while vertices_to_walk:
+
+    # Add neighbors to the list of vertices to walk.
+    while Neighbors[next_v]:
+        n = Neighbors[next_v].pop()
+        Neighbors[n].remove(next_v)
+        vertices_to_walk.append(n)
 
     # Start a new branch.
     branch = []
@@ -234,14 +234,6 @@ while vertices_to_walk:
         Neighbors[next_v].remove(this_v)
 
     branch.append(next_v)
-
-    # Add the forking neighbors to the list of vertices to walk.
-    # Each is the start of a new branch.
-    while Neighbors[next_v]:
-        n = Neighbors[next_v].pop()
-        Neighbors[n].remove(next_v)
-        vertices_to_walk.append(n)
-
     Branches.append(branch)
 
 # Stitch together the two branches emenating from the root node.
