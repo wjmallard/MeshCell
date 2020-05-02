@@ -209,12 +209,6 @@ next_v = root
 
 while vertices_to_walk:
 
-    # Add neighbors to the list of vertices to walk.
-    while Neighbors[next_v]:
-        n = Neighbors[next_v].pop()
-        Neighbors[n].remove(next_v)
-        vertices_to_walk.append(n)
-
     # Start a new branch.
     branch = []
 
@@ -235,6 +229,12 @@ while vertices_to_walk:
 
     branch.append(next_v)
     Branches.append(branch)
+
+    # Add neighbors to the list of vertices to walk.
+    while Neighbors[next_v]:
+        n = Neighbors[next_v].pop()
+        Neighbors[n].remove(next_v)
+        vertices_to_walk.append(n)
 
 # Stitch together the two branches emenating from the root node.
 b1 = [b for b in Branches if b[0] == n1][0]
