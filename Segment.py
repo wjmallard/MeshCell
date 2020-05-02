@@ -227,7 +227,7 @@ while vertices_to_walk:
 
         # Advance to next vertex.
         this_v = next_v
-        next_v = next_v_neighbors[0]
+        next_v = next_v_neighbors.pop()
 
         # Add this vertex to the branch.
         branch.append(this_v)
