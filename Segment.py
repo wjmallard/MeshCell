@@ -351,3 +351,60 @@ for i in range(len(rib_starts)):
 
     plt.plot([xs, xt], [ys, yt], 'b')
     plt.plot([xs, xb], [ys, yb], 'b')
+
+#%% Step 6: Display Results
+
+plt.close('all')
+
+fig = plt.figure(figsize=(10, 6), dpi=100)
+axes = fig.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
+
+ax = axes[0][0]
+ax.pcolor(im, cmap='Greys_r')
+
+ax = axes[0][1]
+ax.pcolor(im_filled, cmap='Greys_r')
+
+ax = axes[0][2]
+dc = .5 * np.ones((2,1))
+ax.pcolor(im, cmap='Greys_r', alpha=.2)
+ax.plot(*contour.T + dc, 'r:')
+
+ax = axes[1][0]
+ax.plot(*contour.T, 'k--')
+for u, v in E:
+    if u < 0: continue
+    if v < 0: continue
+    if not I[u]: continue
+    if not I[v]: continue
+    ax.plot(*list(zip(V[u], V[v])), linewidth=.5)
+
+ax = axes[1][1]
+ax.plot(*contour.T, 'k--', linewidth=1)
+ax.plot(*skeleton.T, 'r:', linewidth=1)
+
+ax = axes[1][2]
+ax.plot(*contour.T, 'k--', linewidth=1)
+ax.plot(*skeleton.T, 'b-', linewidth=1)
+for i in range(len(rib_starts)):
+
+    xs, ys = rib_starts[i]
+    xt, yt = top_intersections[i]
+    xb, yb = bot_intersections[i]
+
+    ax.plot([xs, xt], [ys, yt], 'r', linewidth=1)
+    ax.plot([xs, xb], [ys, yb], 'r', linewidth=1)
+
+dxy = 5  # pixels
+xlim = X.min() - dxy, X.max() + dxy
+ylim = Y.min() - dxy, Y.max() + dxy
+
+ax = axes[0][0]
+ax.set_xlim(xlim)
+ax.set_ylim(ylim)
+
+fig.tight_layout()
+
+tiff = FILENAME.split('/')[-1]
+filename = f'{tiff}.cell_{cell_id}.png'
+fig.savefig(filename)
