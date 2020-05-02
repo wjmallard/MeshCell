@@ -204,10 +204,12 @@ Branches = []
 vertices_to_walk = []
 
 root = central_vertex_idx
+n1, n2 = Neighbors[root]
 
 next_v = root
 
-for n in Neighbors[next_v]:
+while Neighbors[next_v]:
+    n = Neighbors[next_v].pop()
     Neighbors[n].remove(next_v)
     vertices_to_walk.append(n)
 
@@ -235,15 +237,14 @@ while vertices_to_walk:
 
     # Add the forking neighbors to the list of vertices to walk.
     # Each is the start of a new branch.
-    for n in Neighbors[next_v]:
+    while Neighbors[next_v]:
+        n = Neighbors[next_v].pop()
         Neighbors[n].remove(next_v)
         vertices_to_walk.append(n)
 
     Branches.append(branch)
 
 # Stitch together the two branches emenating from the root node.
-n1, n2 = Neighbors[root]
-
 b1 = [b for b in Branches if b[0] == n1][0]
 b2 = [b for b in Branches if b[0] == n2][0]
 main_branch = b1[::-1] + [root] + b2
