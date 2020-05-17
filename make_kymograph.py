@@ -5,6 +5,7 @@
 @author Shicong Xie (xies)
 @date May 2020
 """
+import numpy as np
 from skimage import io
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline
@@ -52,6 +53,7 @@ for i in range(len(rib_starts)):
 
 #%% Generate kymographs along meshes.
 movie = io.imread(TIRF_REG)
+tirf_mip = io.imread(TIRF_MIP)
 
 num_points = 20
 
@@ -63,17 +65,40 @@ for i in range(len(top_intersections)):
 
     print(f'Processing rib {i}.')
 
+    # Construct rib.
     x1, y1 = top_intersections[i]
     x2, y2 = bot_intersections[i]
 
     x_points = np.linspace(x1, x2, num_points)
     y_points = np.linspace(y1, y2, num_points)
 
+    # Generate kymograph.
     F = [RectBivariateSpline(y_mesh, x_mesh, frame) for frame in movie]
-
     K = np.array([f.ev(y_points, x_points) for f in F])
 
+    # Plot.
     plt.close('all')
-    plt.imshow(K, cmap='gray')
-    plt.title(f'Rib {i}')
+    fig = plt.figure(figsize=(9, 8), constrained_layout=True)
+    fig.suptitle(f'Rib {i}')
+    grid = fig.add_gridspec(2, 2,
+                            wspace=0.0,
+                            hspace=0.0,
+                            width_ratios=[10, 1],
+                            height_ratios=[1, 50])
+
+    ax = fig.add_subplot(grid[1,0])
+    ax.imshow(tirf_mip, cmap='gray')
+    ax.plot((x1, x2), (y1, y2), 'r-', linewidth=2)
+    ax.plot(*contour.T, 'g:')
+    ax.plot(*skeleton.T, 'y:')
+    ax.set_xlim([0, Sx])
+    ax.set_xlim([0, Sy])
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    ax = fig.add_subplot(grid[1,1])
+    ax.imshow(K, cmap='gray')
+    ax.set_xticks([])
+    ax.set_yticks([])
+
     plt.savefig(f'Rib_{i:02}.png')
