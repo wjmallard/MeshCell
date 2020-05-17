@@ -16,7 +16,7 @@ import Mesh
 FILENAME = '/Users/wmallard/Desktop/Microscopy/test.tif'
 
 im = io.imread(FILENAME, as_gray=True)
-object_labels = Segmentation.segment_cells(im)
+object_labels = Segmentation.segment_deepcell_masks(im)
 
 Contours = Contour.ContourGenerator(im, object_labels)
 

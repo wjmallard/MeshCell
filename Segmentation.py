@@ -30,7 +30,7 @@ def fill_image_to_min_height(im, h_min):
     im = util.invert(im)
     return im
 
-def segment_cells(im):
+def segment_deepcell_masks(im):
     '''
     Segment DeepCell cell masks via watershed.
 
