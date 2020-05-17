@@ -28,9 +28,19 @@ def get_cell_boundary_coords(object_labels, cell_id):
     cell_mask = object_labels == cell_id
 
     c = find_contours(cell_mask, level=.9)
+
+    # If no contours (or multiple contours) are found:
     if len(c) != 1: return None, None
 
-    Y, X = c[0].T
+    C = c[0]
+
+    # If an object intersects the edge of an image,
+    # find_contours() will leave the contour open.
+    # Close it, so skeletonization does not fail.
+    if (C[0] != C[-1]).any():
+        C = np.vstack((C, C[0]))
+
+    Y, X = C.T
 
     return X, Y
 

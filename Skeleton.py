@@ -133,6 +133,14 @@ def extend_skeleton(skeleton, contour):
     skeleton_trim = skeleton_ext
     skeleton_trim[0] = intersection[0]
     skeleton_trim[-1] = intersection[-1]
+    # TODO: Handle the "edge" case:
+    #       When a cell is flagged as hitting an edge,
+    #       there is no contour to intersect, so one or
+    #       both of the intersections comes back as NaN.
+    #       If the "keep edge cells" flag is on,
+    #       then truncate the cell perpendicularly.
+    #       If it is off, then discard the cell.
+    #       The flag should be off by default.
     
     # Interpolate again on the whole extended skeleton.
     skeleton_final = Contour.evenly_distribute_contour_points(skeleton_trim[:,0], skeleton_trim[:,1])
