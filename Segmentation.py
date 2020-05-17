@@ -11,17 +11,21 @@ from skimage import segmentation
 
 h_min_to_fill = 0.1  # relative to 1.0 maximum
 
-def fill_image_to_min_height(image, h_min):
+def fill_image_to_min_height(im, h_min):
     '''
     Reproduces Matlab's imhmin() function.
-    
+
     Fill local minima in image up to depth h_min.
-    
-    Arguments:
-        image - 2D image
-        h_min - scalar
+
+    Parameters
+    ----------
+    im : 2D np.array, float32
+        A TIFF image to be filled.
+    h_min : scalar, float32
+        Percentile for clipping. (out of 100)
+
     '''
-    im = util.invert(image)
+    im = util.invert(im)
     im = morphology.reconstruction((im - h_min), im, method='dilation')
     im = util.invert(im)
     return im
