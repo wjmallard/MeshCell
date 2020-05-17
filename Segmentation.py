@@ -5,7 +5,11 @@
 @author Shicong Xie (xies)
 @date April 2020
 """
+import numpy as np
+
 from skimage import util
+from skimage import exposure
+from skimage import filters
 from skimage import morphology
 from skimage import segmentation
 
@@ -67,7 +71,7 @@ def segment_phase_image(im):
 
     '''
     im = contrast_stretch(im)
-    im = filters.sobel(im_stretch)
+    im = filters.sobel(im)
     im = fill_image_to_min_height(im, h_min_to_fill)
     object_labels = segmentation.watershed(im, connectivity=8)
     return object_labels
@@ -87,7 +91,7 @@ def segment_deepcell_masks(im):
         Assigns each pixel to a cell_id.
 
     '''
-    im_filled = fill_image_to_min_height(im, h_min_to_fill)
-    object_labels = segmentation.watershed(im_filled, connectivity=8)
+    im = fill_image_to_min_height(im, h_min_to_fill)
+    object_labels = segmentation.watershed(im, connectivity=8)
     # TODO: Filter out objects that are too small or too big.
     return object_labels
