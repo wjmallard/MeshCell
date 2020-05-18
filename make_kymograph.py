@@ -92,7 +92,7 @@ for i in range(len(top_intersections)):
     ax.plot(*contour.T, 'g:')
     ax.plot(*skeleton.T, 'y:')
     ax.set_xlim([0, Sx])
-    ax.set_xlim([0, Sy])
+    ax.set_ylim([0, Sy])
     ax.set_xticks([])
     ax.set_yticks([])
 
