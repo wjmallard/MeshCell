@@ -95,3 +95,36 @@ def segment_deepcell_masks(im):
     object_labels = segmentation.watershed(im, connectivity=8)
     # TODO: Filter out objects that are too small or too big.
     return object_labels
+
+def identify_background(im, object_labels, im_type=None):
+    '''
+    Infer the background label based on mean intensity.
+
+    If im_type is 'phase', find the label with the maximum mean intensity.
+    Otherwise, use minimum mean intensity.
+
+    Parameters
+    ----------
+    im : 2D np.array, float32
+        An image.
+    object_labels : 2D np.array, int32
+        Assigns each pixel to a cell_id.
+    im_type : str
+        None (default), 'phase'
+
+    Returns
+    -------
+    bg_label : scalar, int32
+        The cell_id of the background.
+
+    '''
+    labels = np.unique(object_labels)
+    mean_intensities = [im[object_labels == label].mean()
+                        for label in labels]
+
+    if im_type == 'phase':
+        bg_label = labels[np.argmax(mean_intensities)]
+    else:
+        bg_label = labels[np.argmin(mean_intensities)]
+
+    return bg_label
