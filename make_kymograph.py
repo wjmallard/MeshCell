@@ -63,10 +63,24 @@ Sy, Sx = movie[0].shape
 x_mesh = np.arange(Sx)
 y_mesh = np.arange(Sy)
 
+interp_mip = RectBivariateSpline(y_mesh, x_mesh, tirf_mip)
+
 # Find intensity peaks along skeleton.
-f = RectBivariateSpline(y_mesh, x_mesh, tirf_mip)
-k = f.ev(*skeleton.T[::-1])
-peaks, _ = find_peaks(k, height=k.mean())
+rib_sums = []
+
+for P1, P2 in zip(top_intersections, bot_intersections):
+
+    x1, y1 = P1
+    x2, y2 = P2
+
+    x_points = np.linspace(x1, x2, num_points)
+    y_points = np.linspace(y1, y2, num_points)
+
+    result = interp_mip.ev(y_points, x_points).sum()
+    rib_sums.append(result)
+
+rib_sums = np.array(rib_sums)
+peaks, _ = find_peaks(rib_sums, height=rib_sums.mean())
 
 for i in peaks:
 
