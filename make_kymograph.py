@@ -9,6 +9,7 @@ import numpy as np
 from skimage import io
 import matplotlib.pyplot as plt
 from scipy.interpolate import RectBivariateSpline
+from scipy.signal import find_peaks
 
 import Segmentation
 import Contour
@@ -62,7 +63,12 @@ Sy, Sx = movie[0].shape
 x_mesh = np.arange(Sx)
 y_mesh = np.arange(Sy)
 
-for i in range(len(top_intersections)):
+# Find intensity peaks along skeleton.
+f = RectBivariateSpline(y_mesh, x_mesh, tirf_mip)
+k = f.ev(*skeleton.T[::-1])
+peaks, _ = find_peaks(k, height=k.mean())
+
+for i in peaks:
 
     print(f'Processing rib {i}.')
 
