@@ -23,13 +23,14 @@ TIRF_REG = 'test_tirf_reg.tif'
 im = io.imread(PHASE, as_gray=True)
 object_labels = Segmentation.segment_phase_image(im)
 
+bg_id = Segmentation.identify_background(im, object_labels, im_type='phase')
+
 Contours = Contour.ContourGenerator(im, object_labels)
 
 # TODO: Loop over all cells.
-# num_cells = object_labels.max() + 1
-# for cell_id in range(num_cells):
+# for cell_id in num_cells.unique():
+#     if cell_id == bg_id: continue
 #     X, Y = get_cell_boundary_coords(object_labels, cell_id)
-#     if X is None: continue
 cell_id = 3
 
 contour = Contours.generate(cell_id)
