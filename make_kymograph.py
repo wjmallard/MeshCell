@@ -64,6 +64,7 @@ x_mesh = np.arange(Sx)
 y_mesh = np.arange(Sy)
 
 interp_mip = RectBivariateSpline(y_mesh, x_mesh, tirf_mip)
+interp_movie = [RectBivariateSpline(y_mesh, x_mesh, frame) for frame in movie]
 
 # Find intensity peaks along skeleton.
 rib_sums = []
@@ -94,8 +95,8 @@ for i in peaks:
     y_points = np.linspace(y1, y2, num_points)
 
     # Generate kymograph.
-    F = [RectBivariateSpline(y_mesh, x_mesh, frame) for frame in movie]
-    K = np.array([f.ev(y_points, x_points) for f in F])
+    K = np.array([interp_frame.ev(y_points, x_points)
+                  for interp_frame in interp_movie])
 
     # Plot.
     plt.close('all')
