@@ -15,7 +15,7 @@ from skimage import segmentation
 
 h_min_to_fill = 0.1  # relative to 1.0 maximum
 
-def contrast_stretch(im, clip=2):
+def contrast_stretch(im, clip=0):
     '''
     Enhance image contrast via linear scaling.
 
@@ -70,7 +70,7 @@ def segment_phase_image(im):
         Assigns each pixel to a cell_id.
 
     '''
-    im = contrast_stretch(im)
+    im = contrast_stretch(im, clip=2)
     im = filters.sobel(im)
     im = fill_image_to_min_height(im, h_min_to_fill)
     object_labels = segmentation.watershed(im, connectivity=8)
