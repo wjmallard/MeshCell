@@ -61,29 +61,31 @@ def build_skeleton(contour):
     # No need to check for:
     #   - cycles because Voronoi diagrams are acyclic.
     #   - disjoint subgraphs because Voronoi diagrams are fully connected.
-    #
-    # TODO: Fork nodes do not appear on all branches emanating from them,
-    #       so the skeleton is missing one vertex. Fix this!
-    #       Rather than pushing all the fork node's neighbors,
-    #       maybe push the fork node itself?
-    Leaves = [k for k, v in Neighbors.items() if len(v) == 1]
-    root = Leaves[0]
+    Forks = [k for k, v in Neighbors.items() if len(v) > 2]
+    root = Forks[0]
 
     Branches = []
-    vertices_to_walk = [root]
-    next_v = root
+    vertices_to_walk = []
+
+    # Start at a fork node.
+    # Push the first two nodes of each branch onto the stack.
+    this_v = root
+    while Neighbors[this_v]:
+        next_v = Neighbors[this_v].pop()
+        Neighbors[next_v].remove(this_v)
+        vertices_to_walk.append([this_v, next_v])
 
     while vertices_to_walk:
 
         # Start a new branch.
-        branch = []
-        next_v = vertices_to_walk.pop()
+        branch = vertices_to_walk.pop()
+        next_v = branch.pop()
 
         while len(Neighbors[next_v]) == 1:
 
             # Advance to next vertex.
             this_v = next_v
-            next_v = Neighbors[next_v].pop()
+            next_v = Neighbors[this_v].pop()
 
             # Add this vertex to the branch.
             branch.append(this_v)
@@ -101,7 +103,7 @@ def build_skeleton(contour):
         while Neighbors[next_v]:
             n = Neighbors[next_v].pop()
             Neighbors[n].remove(next_v)
-            vertices_to_walk.append(n)
+            vertices_to_walk.append([next_v, n])
 
     # Find the longest branch. Make that the skeleton.
     skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
