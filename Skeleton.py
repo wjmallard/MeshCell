@@ -8,6 +8,7 @@
 import numpy as np
 from scipy.spatial import Voronoi
 from collections import defaultdict
+from collections import Counter
 from matplotlib import path
 
 import Contour
@@ -19,6 +20,76 @@ def generate(contour):
     skel = build_skeleton(contour)
     skel = extend_skeleton(skel, contour)
     return skel
+
+def find_leaves(Branches):
+
+    # Find the degree of all branch-end vertices.
+    Degree = Counter(branch[-1] for branch in Branches)
+    Degree += Counter(branch[0] for branch in Branches)
+
+    # Find all leaves.
+    Leaves = {k for k, v in Degree.items() if v == 1}
+
+    return Leaves
+
+def find_forks(Branches):
+
+    # Find the degree of all branch-end vertices.
+    Degree = Counter(branch[-1] for branch in Branches)
+    Degree += Counter(branch[0] for branch in Branches)
+
+    # Find all leaves.
+    Forks = {k for k, v in Degree.items() if v == 3}
+
+    return Forks
+
+def find_distal_vertices(Branches, fork):
+
+    # Find all vertices distal to the specified fork.
+    distal_vertices = {branch[-1] for branch in Branches if branch[0] == fork}
+    distal_vertices |= {branch[0] for branch in Branches if branch[-1] == fork}
+
+    return distal_vertices
+
+def remove_spurs(Branches):
+    '''
+    Remove spurs from a skeleton.
+
+    We define a leaf as a degree 1 vertex.
+    We define a fork as a degree 3 vertex.
+
+    A fork has a spur if two of its three branches terminate in other forks,
+    while its third branch terminates in a leaf; this branch is the spur.
+
+    For rod-shaped cells, there should never be enough bending to introduce
+    complex branching in the Voronoi skeleton (ie, more than a spur) other
+    than at the ends of the cell.
+    '''
+    for fork in find_forks(Branches):
+
+        # Check if this vertex has a spur.
+        leaves = find_leaves(Branches)
+        distal_vertices = find_distal_vertices(Branches, fork)
+        distal_leaves = distal_vertices.intersection(leaves)
+        if len(distal_leaves) != 1: continue
+
+        # Remove the spur.
+        leaf = distal_leaves.pop()
+        spur = [branch for branch in Branches
+                if fork in branch and leaf in branch][0]
+        Branches.remove(spur)
+
+        # Merge the two remaining branches.
+        A, B = [branch for branch in Branches if fork in branch]
+        if A[0] == fork: A.reverse()
+        if B[-1] == fork: B.reverse()
+        assert A[-1] == B[0] == fork
+        C = A + B[1:]
+
+        # Replace the two branches with the merged one.
+        Branches.remove(A)
+        Branches.remove(B)
+        Branches.append(C)
 
 def build_skeleton(contour):
 
@@ -104,6 +175,9 @@ def build_skeleton(contour):
             n = Neighbors[next_v].pop()
             Neighbors[n].remove(next_v)
             vertices_to_walk.append([next_v, n])
+
+    # Remove spurs.
+    remove_spurs(Branches)
 
     # Find the longest branch. Make that the skeleton.
     skel_length, skel_indices = sorted((len(b), b) for b in Branches)[-1]
