@@ -85,7 +85,7 @@ peaks, _ = find_peaks(rib_sums, height=rib_sums.mean())
 
 for i in peaks:
 
-    print(f'Processing rib {i}.')
+    print(f'Processing cell {cell_id} rib {i}.')
 
     # Construct rib.
     x1, y1 = top_intersections[i]
@@ -101,7 +101,7 @@ for i in peaks:
     # Plot.
     plt.close('all')
     fig = plt.figure(figsize=(9, 8), constrained_layout=True)
-    fig.suptitle(f'Rib {i}')
+    fig.suptitle(f'Cell {cell_id} Rib {i}')
     grid = fig.add_gridspec(2, 2,
                             wspace=0.0,
                             hspace=0.0,
@@ -123,4 +123,4 @@ for i in peaks:
     ax.set_xticks([])
     ax.set_yticks([])
 
-    plt.savefig(f'Rib_{i:02}.png')
+    plt.savefig(f'Cell_{cell_id}_Rib_{i:04}.png')
