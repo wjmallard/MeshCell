@@ -114,7 +114,7 @@ for i in peaks:
     ax.plot(*contour.T, 'g:')
     ax.plot(*skeleton.T, 'y:')
     ax.set_xlim([0, Sx])
-    ax.set_ylim([0, Sy])
+    ax.set_ylim([Sy, 0])
     ax.set_xticks([])
     ax.set_yticks([])
 
