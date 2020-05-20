@@ -9,23 +9,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def save_image(filename, cell_id, im, contour, skeleton):
-    
+
     plt.close('all')
-    
+
     fig = plt.figure(figsize=(10, 6), dpi=100)
     axes = fig.subplots(nrows=2, ncols=3, sharex=True, sharey=True)
-    
+
     ax = axes[0][0]
     ax.imshow(im, cmap='Greys_r')
-    
+
     ax = axes[0][1]
     #ax.imshow(im_filled, cmap='Greys_r')
-    
+
     ax = axes[0][2]
     dc = .5 * np.ones((2,1))
     ax.imshow(im, cmap='Greys_r', alpha=.2)
     ax.plot(*contour.T + dc, 'r:')
-    
+
     ax = axes[1][0]
     ax.plot(*contour.T, 'k--')
     for u, v in E:
@@ -34,46 +34,144 @@ def save_image(filename, cell_id, im, contour, skeleton):
         if not I[u]: continue
         if not I[v]: continue
         ax.plot(*list(zip(V[u], V[v])), linewidth=.5)
-    
+
     ax = axes[1][1]
     ax.plot(*contour.T, 'k--', linewidth=1)
     ax.plot(*skeleton.T, 'r:', linewidth=1)
-    
+
     ax = axes[1][2]
     ax.plot(*contour.T, 'k--', linewidth=1)
     ax.plot(*skeleton.T, 'b-', linewidth=1)
     for i in range(len(rib_starts)):
-    
+
         xs, ys = rib_starts[i]
         xt, yt = top_intersections[i]
         xb, yb = bot_intersections[i]
-    
+
         ax.plot([xs, xt], [ys, yt], 'r', linewidth=1)
         ax.plot([xs, xb], [ys, yb], 'r', linewidth=1)
-    
+
     # Find width of longest dimension.
     wx = X.max() - X.min()
     wy = Y.max() - Y.min()
     dist_from_center_to_edge = max(wx, wy) / 2
-    
+
     # Find center of square.
     cx = (X.min() + X.max()) / 2
     cy = (Y.min() + Y.max()) / 2
-    
+
     # Find new xy limits.
     pad = 5  # pixels
     xmin = cx - dist_from_center_to_edge - pad
     xmax = cx + dist_from_center_to_edge + pad
     ymin = cy - dist_from_center_to_edge - pad
     ymax = cy + dist_from_center_to_edge + pad
-    
+
     # Set xy limits.
     ax = axes[0][0]
     ax.set_xlim((xmin, xmax))
     ax.set_ylim((ymin, ymax))
-    
+
     fig.tight_layout()
-    
+
     tiff = filename.split('/')[-1]
     fig.savefig(f'{tiff}.cell_{cell_id}.png')
 
+def debug_contour(image, contour=None, skeleton=None, mesh=None, title=None, filename=None):
+
+    plt.close('all')
+
+    plt.imshow(image, cmap='gray')
+
+    if contour:
+        plt.plot(*contour.T, 'ko-')
+
+    if skeleton:
+        plt.plot(*skeleton.T, 'rx-')
+
+    if mesh:
+        rib_starts, top_intersections, bot_intersections = mesh
+
+        for i in range(len(rib_starts)):
+
+            xs, ys = rib_starts[i]
+            xt, yt = top_intersections[i]
+            xb, yb = bot_intersections[i]
+
+            plt.plot([xs, xt], [ys, yt], 'b')
+            plt.plot([xs, xb], [ys, yb], 'b')
+
+    if title:
+        plt.title(title)
+
+    if filename:
+        plt.savefig(filename)
+
+def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title=None, filename=None):
+
+    x1, y1 = P1
+    x2, y2 = P2
+    Sy, Sx = image.shape
+
+    plt.close('all')
+
+    fig = plt.figure(figsize=(9, 8), constrained_layout=True)
+    grid = fig.add_gridspec(2, 2,
+                            wspace=0.0,
+                            hspace=0.0,
+                            width_ratios=[10, 1],
+                            height_ratios=[1, 50])
+
+    ax = fig.add_subplot(grid[1,0])
+    ax.imshow(image, cmap='gray')
+    ax.plot((x1, x2), (y1, y2), 'r-', linewidth=2)
+
+    if contour:
+        ax.plot(*contour.T, 'g:')
+
+    if skeleton:
+        ax.plot(*skeleton.T, 'y:')
+
+    ax.set_xlim([0, Sx])
+    ax.set_ylim([Sy, 0])
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    ax = fig.add_subplot(grid[1,1])
+    ax.imshow(kymograph, cmap='gray')
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    if title:
+        fig.suptitle(title)
+
+    if filename:
+        plt.savefig(filename)
+
+def debug_fft(kymograph, kymo_trace, sampling_period):
+
+    n_timepoints = len(kymo_trace)
+    ff = np.fft.fftfreq(n_timepoints, sampling_period)
+
+    F = abs(np.fft.rfft(kymo_trace))
+    F[0] = 0
+
+    freq = abs(ff[np.argmax(F)])
+    amp = kymo_trace.std() * np.sqrt(2.)
+    offset = kymo_trace.mean()
+
+    plt.close('all')
+    fig = plt.figure(figsize=(10, 4), constrained_layout=True)
+    grid = fig.add_gridspec(1, 3,
+                            wspace=0.0,
+                            hspace=0.0,
+                            width_ratios=[1, 5, 5])
+
+    ax = fig.add_subplot(grid[0,0])
+    ax.imshow(kymograph, cmap='gray')
+
+    ax = fig.add_subplot(grid[0,1])
+    ax.plot(kymo_trace)
+
+    ax = fig.add_subplot(grid[0,2])
+    ax.plot(F)
