@@ -7,6 +7,7 @@ Created on Tue May 19 23:04:04 2020
 """
 import numpy as np
 from numpy.fft import rfft, rfftfreq
+from scipy.signal import detrend, windows
 from scipy.optimize import curve_fit
 
 def gauss(x, A, mu, sigma, offset):
@@ -36,6 +37,9 @@ def find_dominant_frequency(Y, sampling_period):
 
     n_timepoints = len(Y)
     ff = rfftfreq(n_timepoints, sampling_period)
+
+    Y = detrend(Y)
+    Y *= windows.hann(n_timepoints)
 
     F = abs(rfft(Y))
     F[0] = 0
