@@ -8,6 +8,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from numpy.fft import rfft, rfftfreq
+
 def save_image(filename, cell_id, im, contour, skeleton):
 
     plt.close('all')
@@ -151,9 +153,9 @@ def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title
 def debug_fft(kymograph, kymo_trace, sampling_period):
 
     n_timepoints = len(kymo_trace)
-    ff = np.fft.fftfreq(n_timepoints, sampling_period)
+    ff2 = rfftfreq(n_timepoints, sampling_period)
 
-    F = abs(np.fft.rfft(kymo_trace))
+    F = abs(rfft(kymo_trace))
     F[0] = 0
 
     freq = abs(ff[np.argmax(F)])
