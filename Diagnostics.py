@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from numpy.fft import rfft, rfftfreq
+from scipy.signal import detrend
+from scipy.signal import windows
 
 def save_image(filename, cell_id, im, contour, skeleton):
 
@@ -153,7 +155,7 @@ def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title
 def debug_fft(kymograph, kymo_trace, sampling_period):
 
     n_timepoints = len(kymo_trace)
-    ff2 = rfftfreq(n_timepoints, sampling_period)
+    ff = rfftfreq(n_timepoints, sampling_period)
 
     F = abs(rfft(kymo_trace))
     F[0] = 0
@@ -177,3 +179,38 @@ def debug_fft(kymograph, kymo_trace, sampling_period):
 
     ax = fig.add_subplot(grid[0,2])
     ax.plot(F)
+
+def debug_detrend_window(k):
+
+    plt.close('all')
+    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+
+    X = k
+    axes[0][0].plot(X)
+    axes[0][0].set_xlim((0, 240))
+    axes[1][0].semilogy(abs(rfft(X))[:])
+    axes[1][0].set_xlim((0, 120))
+    axes[1][0].set_ylim((1e1, 1e5))
+
+    X = detrend(k)
+    axes[0][1].plot(X)
+    axes[0][1].set_xlim((0, 240))
+    axes[1][1].semilogy(abs(rfft(X))[:])
+    axes[1][1].set_xlim((0, 120))
+    axes[1][1].set_ylim((1e1, 1e5))
+
+    X = windows.hann(k.shape[0]) * detrend(k)
+    axes[0][2].plot(X)
+    axes[0][2].set_xlim((0, 240))
+    axes[1][2].semilogy(abs(rfft(X))[:])
+    axes[1][2].set_xlim((0, 120))
+    axes[1][2].set_ylim((1e1, 1e5))
+
+    axes[0][0].set_ylabel('Kymograph dominant bin')
+    axes[0][1].set_ylabel('Spectrum')
+
+    axes[1][0].set_xlabel('Raw')
+    axes[1][1].set_xlabel('Detrend')
+    axes[1][2].set_xlabel('Detrend + Hann window')
+
+    fig.tight_layout()
