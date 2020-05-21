@@ -6,6 +6,7 @@ Created on Tue May 19 23:04:04 2020
 @author: wmallard
 """
 import numpy as np
+from numpy.fft import rfft, rfftfreq
 from scipy.optimize import curve_fit
 
 def gauss(x, A, mu, sigma, offset):
@@ -34,9 +35,9 @@ def collapse_kymo_to_1d(K):
 def find_dominant_frequency(Y, sampling_period):
 
     n_timepoints = len(Y)
-    ff = np.fft.fftfreq(n_timepoints, sampling_period)
+    ff = rfftfreq(n_timepoints, sampling_period)
 
-    F = abs(np.fft.rfft(Y))
+    F = abs(rfft(Y))
     F[0] = 0
 
     freq = abs(ff[np.argmax(F)])
