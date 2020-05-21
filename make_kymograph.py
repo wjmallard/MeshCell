@@ -15,6 +15,7 @@ import Contour
 import Skeleton
 import Mesh
 import Kymograph
+import Diagnostics
 
 PHASE = 'test_phase.tif'
 TIRF_REG = 'test_tirf_reg.tif'
@@ -42,8 +43,6 @@ bg_id = Segmentation.identify_background(phase, object_labels, im_type='phase')
 
 # Prepare contour generator.
 Contours = Contour.ContourGenerator(phase, object_labels)
-
-Velocities = []
 
 for cell_id in np.unique(object_labels):
 
@@ -91,11 +90,15 @@ for cell_id in np.unique(object_labels):
         K = np.array([interp_frame.ev(y_points, x_points)
                       for interp_frame in interp_movie])
 
-        # Calculate velocity.
-        sampling_period = 1  # second
-        cell_diameter = 11 * .065  # microns
-        velocity = Kymograph.calculate_velocity(K, sampling_period, cell_diameter)
+        # Save results.
+        title = f'Cell {cell_id}, Rib {i}'
+        filename = f'Cell_{cell_id:04}_rib_{i:04}.png'
 
-        Velocities.append(velocity)
-
-Velocities = np.array(Velocities)
+        Diagnostics.debug_kymograph(tirf_mip,
+                                    top_intersections[i],
+                                    bot_intersections[i],
+                                    K,
+                                    contour=contour,
+                                    skeleton=skeleton,
+                                    title=title,
+                                    filename=filename)

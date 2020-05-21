@@ -111,7 +111,7 @@ def debug_contour(image, contour=None, skeleton=None, mesh=None, title=None, fil
     if filename:
         plt.savefig(filename)
 
-def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title=None, filename=None):
+def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title='', filename=None):
 
     x1, y1 = P1
     x2, y2 = P2
@@ -119,37 +119,45 @@ def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title
 
     plt.close('all')
 
-    fig = plt.figure(figsize=(9, 8), constrained_layout=True)
-    grid = fig.add_gridspec(2, 2,
-                            wspace=0.0,
-                            hspace=0.0,
-                            width_ratios=[10, 1],
-                            height_ratios=[1, 50])
+    fig = plt.figure(figsize=(12, 8), dpi=100)
 
-    ax = fig.add_subplot(grid[1,0])
+    axis_args = {
+        'xticks': [],
+        'yticks': [],
+        'xticklabels': [],
+        'yticklabels': [],
+    }
+
+    # Rectangle coordinates: [left, bottom, width, height]
+    ax1 = fig.add_axes([.00, .95, 1.0, .05], **axis_args)
+    ax2 = fig.add_axes([.00, .00, .90, .95], **axis_args)
+    ax3 = fig.add_axes([.90, .00, .10, .95], **axis_args)
+
+    ax = ax1
+    ax.text(0.5, 0.5,
+            title,
+            transform=ax.transAxes,
+            fontsize=14,
+            verticalalignment='center',
+            horizontalalignment='center')
+
+    ax = ax2
     ax.imshow(image, cmap='gray')
     ax.plot((x1, x2), (y1, y2), 'r-', linewidth=2)
 
-    if contour:
+    if contour is not None:
         ax.plot(*contour.T, 'g:')
 
-    if skeleton:
+    if skeleton is not None:
         ax.plot(*skeleton.T, 'y:')
 
     ax.set_xlim([0, Sx])
     ax.set_ylim([Sy, 0])
-    ax.set_xticks([])
-    ax.set_yticks([])
 
-    ax = fig.add_subplot(grid[1,1])
+    ax = ax3
     ax.imshow(kymograph, cmap='gray')
-    ax.set_xticks([])
-    ax.set_yticks([])
 
-    if title:
-        fig.suptitle(title)
-
-    if filename:
+    if filename is not None:
         plt.savefig(filename)
 
 def debug_fft(kymograph, kymo_trace, sampling_period):
