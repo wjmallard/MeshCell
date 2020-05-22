@@ -5,11 +5,10 @@
 @author Shicong Xie (xies)
 @date May 2020
 """
+import os
 import numpy as np
-from skimage import io
-from scipy.interpolate import RectBivariateSpline
-from scipy.signal import find_peaks
 
+import Util
 import Segmentation
 import Contour
 import Skeleton
@@ -17,25 +16,17 @@ import Mesh
 import Kymograph
 import Diagnostics
 
+BASEDIR = '.'
 PHASE = 'test_phase.tif'
 TIRF_REG = 'test_tirf_reg.tif'
 TIRF_MIP = 'test_tirf_mip.tif'
 
-phase = io.imread(PHASE)
-movie = io.imread(TIRF_REG)
-tirf_mip = io.imread(TIRF_MIP)
+kymo_width = 20
 
-# Prepare kymograph interpolation.
-num_points = 20
+stack = os.path.join(BASEDIR, TIRF_REG)
 
-Sy, Sx = movie[0].shape
-x_mesh = np.arange(Sx)
-y_mesh = np.arange(Sy)
-
-interp_mip = RectBivariateSpline(y_mesh, x_mesh, tirf_mip)
-interp_movie = [RectBivariateSpline(y_mesh, x_mesh, frame) for frame in movie]
-
-# Generate meshes for phase image.
+phase = Util.load_image(os.path.join(BASEDIR, PHASE))
+tirf_mip = Util.maximum_intensity_projection(os.path.join(BASEDIR, TIRF_REG))
 
 # Segment cells.
 object_labels = Segmentation.segment_phase_image(phase)
@@ -52,43 +43,25 @@ for cell_id in np.unique(object_labels):
         print(' - Background, skipping.')
         continue
 
+    # Generate mesh.
     contour = Contours.generate(cell_id)
     skeleton = Skeleton.generate(contour)
     mesh = Mesh.make_ribs(contour, skeleton)
     rib_starts, top_intersections, bot_intersections = mesh
 
-    # Find intensity peaks along skeleton.
-    rib_sums = []
+    # Find brighest ribs.
+    peaks = Kymograph.find_intensity_peaks(tirf_mip, mesh, kymo_width)
 
-    for P1, P2 in zip(top_intersections, bot_intersections):
-
-        x1, y1 = P1
-        x2, y2 = P2
-
-        x_points = np.linspace(x1, x2, num_points)
-        y_points = np.linspace(y1, y2, num_points)
-
-        result = interp_mip.ev(y_points, x_points).sum()
-        rib_sums.append(result)
-
-    rib_sums = np.array(rib_sums)
-    peaks, _ = find_peaks(rib_sums, height=rib_sums.mean())
-
-    # Generate a kymograph at each peak.
+    # Generate kymographs at these ribs.
     for i in peaks:
 
         print(f'Processing cell {cell_id} rib {i}.')
 
-        # Construct rib.
-        x1, y1 = top_intersections[i]
-        x2, y2 = bot_intersections[i]
-
-        x_points = np.linspace(x1, x2, num_points)
-        y_points = np.linspace(y1, y2, num_points)
-
         # Generate kymograph.
-        K = np.array([interp_frame.ev(y_points, x_points)
-                      for interp_frame in interp_movie])
+        P1 = top_intersections[i]
+        P2 = bot_intersections[i]
+
+        kymograph = Kymograph.make_kymograph(stack, P1, P2, kymo_width)
 
         # Save results.
         title = f'Cell {cell_id}, Rib {i}'
@@ -97,7 +70,7 @@ for cell_id in np.unique(object_labels):
         Diagnostics.debug_kymograph(tirf_mip,
                                     top_intersections[i],
                                     bot_intersections[i],
-                                    K,
+                                    kymograph,
                                     contour=contour,
                                     skeleton=skeleton,
                                     title=title,

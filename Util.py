@@ -36,6 +36,38 @@ def load_nd2(filename):
 
     return frames
 
+def read_image_shape(filename):
+
+    with TiffFile(filename) as im:
+
+        num_frames = len(im.pages)
+        frame = im.pages[0]
+        stack_shape = (num_frames, *frame.shape)
+
+    return stack_shape
+
+def load_cropped_image(filename, x1, y1, x2, y2):
+
+    assert y2 > y1
+    assert x2 > x1
+    dy = y2 - y1
+    dx = x2 - x1
+
+    with TiffFile(filename) as im:
+
+        num_frames = len(im.pages)
+        frame = im.pages[0]
+        stack_shape = (num_frames, dy, dx)
+
+        crop_stack = np.zeros(stack_shape, dtype=frame.dtype)
+        full_frame = np.zeros(frame.shape, dtype=frame.dtype)
+
+        for i, frame in enumerate(im.pages):
+            frame.asarray(out=full_frame)
+            crop_stack[i] = full_frame[y1:y2,x1:x2]
+
+    return crop_stack
+
 def maximum_intensity_projection(filename):
 
     if filename.endswith('.nd2'):
