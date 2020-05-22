@@ -9,6 +9,7 @@ import numpy as np
 import warnings
 from skimage import io
 from nd2reader import ND2Reader
+from tifffile import TiffFile
 
 def load_image(filename):
 
@@ -37,16 +38,47 @@ def load_nd2(filename):
 
 def maximum_intensity_projection(filename):
 
+    if filename.endswith('.nd2'):
+        return make_mip_nd2(filename)
+    elif filename.endswith('.tif') or filename.endswith('.tiff'):
+        return make_mip_tiff(filename)
+    else:
+        return make_mip_generic(filename)
+
+def make_mip_nd2(filename):
+
     # Suppress ND2 metadata warnings.
     warnings.filterwarnings('ignore', category=UserWarning)
 
     with ND2Reader(filename) as im:
 
-        mip = np.zeros_like(im[0])
+        frame = im[0]
+        mip = np.zeros(frame.shape, dtype=frame.dtype)
 
         for frame in im:
             np.maximum(mip, frame, out=mip)
 
     warnings.resetwarnings()
 
-    return np.array(mip)
+    return mip
+
+def make_mip_tiff(filename):
+
+    with TiffFile(filename) as im:
+
+        frame = im.pages[0]
+        mip = np.zeros(frame.shape, dtype=frame.dtype)
+
+        for frame in im.pages:
+            np.maximum(mip, frame.asarray(), out=mip)
+
+    return mip
+
+def make_mip_generic(filename):
+
+    im = io.imread(filename)
+
+    assert len(im.shape) == 3
+    mip = im.max(axis=0)
+
+    return mip
