@@ -10,6 +10,7 @@ import warnings
 from skimage import io
 from nd2reader import ND2Reader
 from tifffile import TiffFile
+from scipy.signal import fftconvolve
 
 def load_image(filename):
 
@@ -114,3 +115,26 @@ def make_mip_generic(filename):
     mip = im.max(axis=0)
 
     return mip
+
+def align_images(im1, im2):
+
+    corr = fftconvolve(im1, im2[::-1,::-1], mode='same')
+
+    max_corr = np.unravel_index(np.argmax(corr), corr.shape)
+    midpoint = np.array(corr.shape) // 2
+
+    dy, dx = max_corr - midpoint
+
+    return dy, dx
+
+def shift_image(im, dx, dy):
+
+    im = np.roll(im, dy, axis=0)
+    im = np.roll(im, dx, axis=1)
+
+    if dy > 0: im[:dy,:] = 0
+    if dy < 0: im[dy:,:] = 0
+    if dx > 0: im[:,:dx] = 0
+    if dx < 0: im[:,dx:] = 0
+
+    return im

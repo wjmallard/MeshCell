@@ -14,6 +14,7 @@ from skimage import morphology
 from skimage import segmentation
 
 h_min_to_fill = 0.1  # relative to 1.0 maximum
+deepcell_threshold = 0.5  # relative to 1.0 maximum
 
 def contrast_stretch(im, clip=0):
     '''
@@ -78,7 +79,7 @@ def segment_phase_image(im):
 
 def segment_deepcell_masks(im):
     '''
-    Segment DeepCell cell masks via watershed.
+    Segment DeepCell cell masks.
 
     Parameters
     ----------
@@ -91,8 +92,8 @@ def segment_deepcell_masks(im):
         Assigns each pixel to a cell_id.
 
     '''
-    im = fill_image_to_min_height(im, h_min_to_fill)
-    object_labels = segmentation.watershed(im, connectivity=8)
+    im = im >= deepcell_threshold
+    object_labels = morphology.label(im, connectivity=2)
     # TODO: Filter out objects that are too small or too big.
     return object_labels
 

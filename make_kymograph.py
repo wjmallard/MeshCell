@@ -16,24 +16,33 @@ import Mesh
 import Kymograph
 import Diagnostics
 
-BASEDIR = '.'
-PHASE = 'test_phase.tif'
-TIRF_REG = 'test_tirf_reg.tif'
-TIRF_MIP = 'test_tirf_mip.tif'
+SAMP_TIRF = 'bAB185 T0 TIRF 001 registered.tif'
+SAMP_CELL = 'bAB185 T0 feature_0 001.tif'
+SAMP_EDGE = 'bAB185 T0 feature_1 001.tif'
+
+BASEDIR = '/Volumes/Delphium/Microscopy/Vabam/2019.07.16 bWM100-34-38 T0-T3 S750 TIRF'
+
+TIRF_IMG = os.path.join(BASEDIR, 'registered_tirf', SAMP_TIRF)
+CELL_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_CELL)
+EDGE_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_EDGE)
 
 kymo_width = 20
 
-stack = os.path.join(BASEDIR, TIRF_REG)
+tirf_mip = Util.maximum_intensity_projection(TIRF_IMG)
+cells = Util.load_image(CELL_IMG)
+edges = Util.load_image(EDGE_IMG)
 
-phase = Util.load_image(os.path.join(BASEDIR, PHASE))
-tirf_mip = Util.maximum_intensity_projection(os.path.join(BASEDIR, TIRF_REG))
+# Align cell boundaries with TIRF movie.
+dy, dx = Util.align_images(tirf_mip, cells)
+cells = Util.shift_image(cells, dx, dy)
+edges = Util.shift_image(edges, dx, dy)
 
 # Segment cells.
-object_labels = Segmentation.segment_phase_image(phase)
-bg_id = Segmentation.identify_background(phase, object_labels, im_type='phase')
+object_labels = Segmentation.segment_deepcell_masks(cells)
+bg_id = Segmentation.identify_background(cells, object_labels)
 
 # Prepare contour generator.
-Contours = Contour.ContourGenerator(phase, object_labels)
+Contours = Contour.ContourGenerator(edges, object_labels)
 
 for cell_id in np.unique(object_labels):
 
@@ -61,7 +70,7 @@ for cell_id in np.unique(object_labels):
         P1 = top_intersections[i]
         P2 = bot_intersections[i]
 
-        kymograph = Kymograph.make_kymograph(stack, P1, P2, kymo_width)
+        kymograph = Kymograph.make_kymograph(TIRF_IMG, P1, P2, kymo_width)
 
         # Save results.
         title = f'Cell {cell_id}, Rib {i}'
