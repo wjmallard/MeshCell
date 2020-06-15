@@ -11,6 +11,7 @@ from skimage import io
 from nd2reader import ND2Reader
 from tifffile import TiffFile
 from scipy.signal import fftconvolve
+from skimage import measure
 
 def load_image(filename):
 
@@ -138,3 +139,13 @@ def shift_image(im, dx, dy):
     if dx < 0: im[:,dx:] = 0
 
     return im
+
+def find_cell_bbox(object_labels, cell_id):
+
+    cell = (object_labels == cell_id).astype(np.uint8)
+    props = measure.regionprops(cell)
+    assert len(props) == 1
+
+    lly, llx, ury, urx = props[0]['bbox']
+
+    return llx, lly, urx, ury

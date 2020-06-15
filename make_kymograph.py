@@ -80,7 +80,10 @@ for cell_id in np.unique(object_labels):
         title = f'Cell {cell_id}, Rib {i}'
         filename = f'Cell_{cell_id:04}_rib_{i:04}.png'
 
+        bbox = Util.find_cell_bbox(object_labels, cell_id)
+
         Diagnostics.debug_kymograph(tirf_mip,
+                                    bbox,
                                     top_intersections[i],
                                     bot_intersections[i],
                                     kymograph,

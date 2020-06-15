@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from numpy.fft import rfft, rfftfreq
 from scipy.signal import detrend
 from scipy.signal import windows
+from matplotlib.patches import Rectangle
 
 def save_image(filename, cell_id, im, contour, skeleton):
 
@@ -111,15 +112,27 @@ def debug_contour(image, contour=None, skeleton=None, mesh=None, title=None, fil
     if filename:
         plt.savefig(filename)
 
-def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title='', filename=None):
+def debug_kymograph(image,
+                    bbox,
+                    P1,
+                    P2,
+                    kymograph,
+                    contour=None,
+                    skeleton=None,
+                    title='',
+                    filename=None):
+
+    padding = 10
 
     x1, y1 = P1
     x2, y2 = P2
     Sy, Sx = image.shape
 
+    llx, lly, urx, ury = bbox
+
     plt.close('all')
 
-    fig = plt.figure(figsize=(12, 8), dpi=100)
+    fig = plt.figure(figsize=(12, 6), dpi=100)
 
     axis_args = {
         'xticks': [],
@@ -130,9 +143,11 @@ def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title
 
     # Rectangle coordinates: [left, bottom, width, height]
     ax1 = fig.add_axes([.00, .95, 1.0, .05], **axis_args)
-    ax2 = fig.add_axes([.00, .00, .90, .95], **axis_args)
-    ax3 = fig.add_axes([.90, .00, .10, .95], **axis_args)
+    ax2 = fig.add_axes([.01, .00, .43, .95], **axis_args)
+    ax3 = fig.add_axes([.46, .00, .43, .95], **axis_args)
+    ax4 = fig.add_axes([.90, .00, .10, .95], **axis_args)
 
+    # Header
     ax = ax1
     ax.text(0.5, 0.5,
             title,
@@ -141,7 +156,29 @@ def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title
             verticalalignment='center',
             horizontalalignment='center')
 
+    # Entire image
     ax = ax2
+    ax.imshow(image, cmap='gray')
+
+    xy = llx - padding, lly - padding
+    width = urx - llx + 2 * padding
+    height = ury - lly + 2 * padding
+
+    rect = Rectangle(xy,
+                     width=width,
+                     height=height,
+                     fill=False,
+                     linestyle='--',
+                     linewidth=1,
+                     edgecolor='red',
+                     facecolor=None)
+    ax.add_patch(rect)
+
+    ax.set_xlim([0, Sx])
+    ax.set_ylim([Sy, 0])
+
+    # Cell close-up
+    ax = ax3
     ax.imshow(image, cmap='gray')
     ax.plot((x1, x2), (y1, y2), 'r-', linewidth=2)
 
@@ -151,10 +188,12 @@ def debug_kymograph(image, P1, P2, kymograph, contour=None, skeleton=None, title
     if skeleton is not None:
         ax.plot(*skeleton.T, 'y:')
 
-    ax.set_xlim([0, Sx])
-    ax.set_ylim([Sy, 0])
+    ax.set_xlim([llx - padding, urx + padding])
+    ax.set_ylim([lly - padding, ury + padding])
+    ax.invert_yaxis()
 
-    ax = ax3
+    # Kymograph
+    ax = ax4
     ax.imshow(kymograph, cmap='gray')
 
     if filename is not None:
