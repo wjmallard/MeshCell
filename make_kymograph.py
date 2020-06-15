@@ -53,10 +53,14 @@ for cell_id in np.unique(object_labels):
         continue
 
     # Generate mesh.
-    contour = Contours.generate(cell_id)
-    skeleton = Skeleton.generate(contour)
-    mesh = Mesh.make_ribs(contour, skeleton)
-    rib_starts, top_intersections, bot_intersections = mesh
+    try:
+        contour = Contours.generate(cell_id)
+        skeleton = Skeleton.generate(contour)
+        mesh = Mesh.make_ribs(contour, skeleton)
+        rib_starts, top_intersections, bot_intersections = mesh
+    except:
+        print(' - Failed, skipping.')
+        continue
 
     # Find brighest ribs.
     peaks = Kymograph.find_intensity_peaks(tirf_mip, mesh, kymo_width)
