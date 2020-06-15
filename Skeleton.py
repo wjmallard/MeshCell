@@ -132,19 +132,18 @@ def build_skeleton(contour):
     # No need to check for:
     #   - cycles because Voronoi diagrams are acyclic.
     #   - disjoint subgraphs because Voronoi diagrams are fully connected.
-    Forks = [k for k, v in Neighbors.items() if len(v) > 2]
-    root = Forks[0]
+    Leaves = [k for k, v in Neighbors.items() if len(v) == 1]
+    root = Leaves[0]
 
     Branches = []
     vertices_to_walk = []
 
-    # Start at a fork node.
-    # Push the first two nodes of each branch onto the stack.
+    # Start at a leaf node.
+    # Push the first two nodes onto the stack.
     this_v = root
-    while Neighbors[this_v]:
-        next_v = Neighbors[this_v].pop()
-        Neighbors[next_v].remove(this_v)
-        vertices_to_walk.append([this_v, next_v])
+    next_v = Neighbors[this_v].pop()
+    Neighbors[next_v].remove(this_v)
+    vertices_to_walk.append([this_v, next_v])
 
     while vertices_to_walk:
 
