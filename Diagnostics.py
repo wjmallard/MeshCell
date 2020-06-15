@@ -87,13 +87,13 @@ def debug_contour(image, contour=None, skeleton=None, mesh=None, title=None, fil
 
     plt.imshow(image, cmap='gray')
 
-    if contour:
+    if contour is not None:
         plt.plot(*contour.T, 'ko-')
 
-    if skeleton:
+    if skeleton is not None:
         plt.plot(*skeleton.T, 'rx-')
 
-    if mesh:
+    if mesh is not None:
         rib_starts, top_intersections, bot_intersections = mesh
 
         for i in range(len(rib_starts)):
