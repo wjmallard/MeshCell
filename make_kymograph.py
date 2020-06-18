@@ -28,16 +28,20 @@ EDGE_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_EDGE)
 
 kymo_width = 20
 
+# Load images.
+print(f'Loading images.')
 tirf_mip = Util.maximum_intensity_projection(TIRF_IMG)
 cells = Util.load_image(CELL_IMG)
 edges = Util.load_image(EDGE_IMG)
 
 # Align cell boundaries with TIRF movie.
+print(f'Aligning phase and TIRF images.')
 dy, dx = Util.align_images(tirf_mip, cells)
 cells = Util.shift_image(cells, dx, dy)
 edges = Util.shift_image(edges, dx, dy)
 
 # Segment cells.
+print(f'Extracting segmented regions.')
 object_labels = Segmentation.segment_deepcell_masks(cells)
 bg_id = Segmentation.identify_background(cells, object_labels)
 
