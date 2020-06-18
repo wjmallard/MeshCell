@@ -48,9 +48,11 @@ bg_id = Segmentation.identify_background(cells, object_labels)
 # Prepare contour generator.
 Contours = Contour.ContourGenerator(edges, object_labels)
 
-for cell_id in np.unique(object_labels):
+print(f'Processing cells.')
+cell_ids = np.unique(object_labels)
+for n, cell_id in enumerate(cell_ids):
 
-    print(f'Processing cell {cell_id}.')
+    print(f'Cell {cell_id}. [{cell_id + 1}/{len(cell_ids)}]')
 
     if cell_id == bg_id:
         print(' - Background, skipping.')
@@ -70,9 +72,9 @@ for cell_id in np.unique(object_labels):
     rib_sums, peaks = Kymograph.find_intensity_peaks(tirf_mip, mesh, kymo_width)
 
     # Generate kymographs at these ribs.
-    for i in peaks:
+    for m, i in enumerate(peaks):
 
-        print(f'Processing cell {cell_id} rib {i}.')
+        print(f' - Rib {i}. [{m + 1}/{len(peaks)}]')
 
         # Generate kymograph.
         P1 = top_intersections[i]
@@ -97,3 +99,5 @@ for cell_id in np.unique(object_labels):
                                     skeleton=skeleton,
                                     title=title,
                                     filename=filename)
+
+print(f'Done.')
