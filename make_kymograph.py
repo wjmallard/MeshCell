@@ -6,6 +6,17 @@
 @date May 2020
 """
 import os
+import sys
+
+try:
+    BASEDIR = sys.argv[1]
+    SAMPLE = sys.argv[2]
+    REPLICATE = sys.argv[3]
+except:
+    script = sys.argv[0].split('/')[-1]
+    print(f'Usage: {script} BASEDIR SAMPLE REPLICATE', file=sys.stderr)
+    sys.exit(1)
+
 import numpy as np
 
 import Util
@@ -16,15 +27,19 @@ import Mesh
 import Kymograph
 import Diagnostics
 
-SAMP_TIRF = 'bAB185 T0 TIRF 001 registered.tif'
-SAMP_CELL = 'bAB185 T0 feature_0 001.tif'
-SAMP_EDGE = 'bAB185 T0 feature_1 001.tif'
+SAMP_TIRF = f'{SAMPLE} TIRF {REPLICATE} registered.tif'
+SAMP_CELL = f'{SAMPLE} feature_0 {REPLICATE}.tif'
+SAMP_EDGE = f'{SAMPLE} feature_1 {REPLICATE}.tif'
 
-BASEDIR = '/Volumes/Delphium/Microscopy/Vabam/2019.07.16 bWM100-34-38 T0-T3 S750 TIRF'
+BASEDIR = os.path.abspath(BASEDIR)
 
 TIRF_IMG = os.path.join(BASEDIR, 'registered_tirf', SAMP_TIRF)
 CELL_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_CELL)
 EDGE_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_EDGE)
+
+assert os.path.exists(TIRF_IMG), f'Cannot open: {TIRF_IMG}'
+assert os.path.exists(CELL_IMG), f'Cannot open: {CELL_IMG}'
+assert os.path.exists(EDGE_IMG), f'Cannot open: {EDGE_IMG}'
 
 kymo_width = 20
 
@@ -83,8 +98,8 @@ for n, cell_id in enumerate(cell_ids):
         kymograph = Kymograph.make_kymograph(TIRF_IMG, P1, P2, kymo_width)
 
         # Save results.
-        title = f'Cell {cell_id}, Rib {i}'
-        filename = f'Cell_{cell_id:04}_rib_{i:04}.png'
+        title = f'{SAMPLE} {REPLICATE} - Cell {cell_id}, Rib {i}'
+        filename = f'{SAMPLE}_{REPLICATE}__Cell_{cell_id:04}_rib_{i:04}.png'
 
         bbox = Util.find_cell_bbox(object_labels, cell_id)
 
