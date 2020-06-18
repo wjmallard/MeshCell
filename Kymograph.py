@@ -61,7 +61,7 @@ def calc_bbox(P1, P2, size, im_height, im_width):
 
     return llx, lly, urx, ury
 
-def find_intensity_peaks(im, mesh, kymo_width):
+def integrate_along_ribs(im, mesh, kymo_width):
 
     Sy, Sx = im.shape
     x_mesh = np.arange(Sx)
@@ -85,6 +85,12 @@ def find_intensity_peaks(im, mesh, kymo_width):
         rib_sums.append(result)
 
     rib_sums = np.array(rib_sums)
+
+    return rib_sums
+
+def find_intensity_peaks(im, mesh, kymo_width):
+
+    rib_sums = integrate_along_ribs(im, mesh, kymo_width)
     peaks, _ = find_peaks(rib_sums, height=rib_sums.mean())
 
     return peaks
