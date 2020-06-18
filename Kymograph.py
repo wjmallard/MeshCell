@@ -93,7 +93,7 @@ def find_intensity_peaks(im, mesh, kymo_width):
     rib_sums = integrate_along_ribs(im, mesh, kymo_width)
     peaks, _ = find_peaks(rib_sums, height=rib_sums.mean())
 
-    return peaks
+    return rib_sums, peaks
 
 def gauss(x, A, mu, sigma, offset):
     return A * np.exp(-(x - mu) ** 2 / (2. * sigma ** 2)) + offset

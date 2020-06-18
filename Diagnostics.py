@@ -116,6 +116,8 @@ def debug_kymograph(image,
                     bbox,
                     P1,
                     P2,
+                    i,
+                    rib_sums,
                     kymograph,
                     contour=None,
                     skeleton=None,
@@ -143,9 +145,10 @@ def debug_kymograph(image,
 
     # Rectangle coordinates: [left, bottom, width, height]
     ax1 = fig.add_axes([.00, .95, 1.0, .05], **axis_args)
-    ax2 = fig.add_axes([.01, .00, .43, .95], **axis_args)
-    ax3 = fig.add_axes([.46, .00, .43, .95], **axis_args)
-    ax4 = fig.add_axes([.90, .00, .10, .95], **axis_args)
+    ax2 = fig.add_axes([.00, .00, .44, .95], **axis_args)
+    ax3 = fig.add_axes([.45, .30, .44, .65], **axis_args)
+    ax4 = fig.add_axes([.45, .00, .44, .30], **axis_args)
+    ax5 = fig.add_axes([.90, .00, .10, .95], **axis_args)
 
     # Header
     ax = ax1
@@ -192,8 +195,16 @@ def debug_kymograph(image,
     ax.set_ylim([lly - padding, ury + padding])
     ax.invert_yaxis()
 
-    # Kymograph
+    # Rib intensities
     ax = ax4
+    ax.plot(rib_sums)
+    ymin, ymax = ax.get_ylim()
+    ax.vlines(i, ymin, ymax, colors='red')
+    ax.set_xlim(0, len(rib_sums))
+    ax.set_ylim(ymin, ymax)
+
+    # Kymograph
+    ax = ax5
     ax.imshow(kymograph, cmap='gray')
 
     if filename is not None:

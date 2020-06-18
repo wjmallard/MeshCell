@@ -67,7 +67,7 @@ for cell_id in np.unique(object_labels):
         continue
 
     # Find brighest ribs.
-    peaks = Kymograph.find_intensity_peaks(tirf_mip, mesh, kymo_width)
+    rib_sums, peaks = Kymograph.find_intensity_peaks(tirf_mip, mesh, kymo_width)
 
     # Generate kymographs at these ribs.
     for i in peaks:
@@ -90,6 +90,8 @@ for cell_id in np.unique(object_labels):
                                     bbox,
                                     top_intersections[i],
                                     bot_intersections[i],
+                                    i,
+                                    rib_sums,
                                     kymograph,
                                     contour=contour,
                                     skeleton=skeleton,
