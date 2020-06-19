@@ -27,16 +27,19 @@ import Mesh
 import Kymograph
 import Diagnostics
 
+SAMP_MIP = f'{SAMPLE} TIRF {REPLICATE} registered MIP.tif'
 SAMP_TIRF = f'{SAMPLE} TIRF {REPLICATE} registered.tif'
 SAMP_CELL = f'{SAMPLE} feature_0 {REPLICATE}.tif'
 SAMP_EDGE = f'{SAMPLE} feature_1 {REPLICATE}.tif'
 
 BASEDIR = os.path.abspath(BASEDIR)
 
+MIP_IMG = os.path.join(BASEDIR, 'mips', SAMP_MIP)
 TIRF_IMG = os.path.join(BASEDIR, 'registered_tirf', SAMP_TIRF)
 CELL_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_CELL)
 EDGE_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_EDGE)
 
+assert os.path.exists(MIP_IMG), f'Cannot open: {MIP_IMG}'
 assert os.path.exists(TIRF_IMG), f'Cannot open: {TIRF_IMG}'
 assert os.path.exists(CELL_IMG), f'Cannot open: {CELL_IMG}'
 assert os.path.exists(EDGE_IMG), f'Cannot open: {EDGE_IMG}'
@@ -45,7 +48,7 @@ kymo_width = 20
 
 # Load images.
 print(f'Loading images.')
-tirf_mip = Util.maximum_intensity_projection(TIRF_IMG)
+tirf_mip = Util.load_image(MIP_IMG)
 cells = Util.load_image(CELL_IMG)
 edges = Util.load_image(EDGE_IMG)
 
