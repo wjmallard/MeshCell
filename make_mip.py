@@ -10,6 +10,7 @@ import sys
 import numpy as np
 from tifffile import TiffFile
 from skimage import io
+from tqdm import tqdm
 
 try:
     filenames = sys.argv[1:]
@@ -19,7 +20,23 @@ except:
     print(f'Usage: {script} STACK', file=sys.stderr)
     sys.exit(1)
 
-def make_mip(filename):
+class ProgressBar(tqdm):
+
+    def __init__(self, num_frames):
+        super().__init__(total=num_frames, unit='frames')
+
+    def update_to(self, current_iteration):
+        current_frame = current_iteration + 2
+        self.update(current_frame - self.n)
+
+def count_frames(filename):
+
+    with TiffFile(filename) as im:
+        num_frames = len(im.pages)
+
+    return num_frames
+
+def make_mip(filename, progress_callback):
 
     with TiffFile(filename) as im:
 
@@ -39,5 +56,9 @@ for n, src in enumerate(filenames):
     base, _ = os.path.splitext(src)
     dst = f'{base} MIP.tif'
 
-    mip = make_mip(src)
+    num_frames = count_frames(src)
+
+    with ProgressBar(num_frames) as pb:
+        mip = make_mip(src, progress_callback=pb.update_to)
+
     io.imsave(dst, mip, bigtiff=True, check_contrast=False)
