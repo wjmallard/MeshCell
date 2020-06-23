@@ -27,19 +27,19 @@ import Mesh
 import Kymograph
 import Diagnostics
 
-SAMP_MIP = f'{SAMPLE} TIRF {REPLICATE} registered MIP.tif'
+SAMP_STD = f'{SAMPLE} TIRF {REPLICATE} registered STD.tif'
 SAMP_TIRF = f'{SAMPLE} TIRF {REPLICATE} registered.tif'
 SAMP_CELL = f'{SAMPLE} feature_0 {REPLICATE}.tif'
 SAMP_EDGE = f'{SAMPLE} feature_1 {REPLICATE}.tif'
 
 BASEDIR = os.path.abspath(BASEDIR)
 
-MIP_IMG = os.path.join(BASEDIR, 'mips', SAMP_MIP)
+STD_IMG = os.path.join(BASEDIR, 'stdev', SAMP_STD)
 TIRF_IMG = os.path.join(BASEDIR, 'registered_tirf', SAMP_TIRF)
 CELL_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_CELL)
 EDGE_IMG = os.path.join(BASEDIR, 'segmented_phase', SAMP_EDGE)
 
-assert os.path.exists(MIP_IMG), f'Cannot open: {MIP_IMG}'
+assert os.path.exists(STD_IMG), f'Cannot open: {STD_IMG}'
 assert os.path.exists(TIRF_IMG), f'Cannot open: {TIRF_IMG}'
 assert os.path.exists(CELL_IMG), f'Cannot open: {CELL_IMG}'
 assert os.path.exists(EDGE_IMG), f'Cannot open: {EDGE_IMG}'
@@ -48,13 +48,13 @@ kymo_width = 20
 
 # Load images.
 print(f'Loading images.')
-tirf_mip = Util.load_image(MIP_IMG)
+tirf_std = Util.load_image(STD_IMG)
 cells = Util.load_image(CELL_IMG)
 edges = Util.load_image(EDGE_IMG)
 
 # Align cell boundaries with TIRF movie.
 print(f'Aligning phase and TIRF images.')
-dy, dx = Util.align_images(tirf_mip, cells)
+dy, dx = Util.align_images(tirf_std, cells)
 cells = Util.shift_image(cells, dx, dy)
 edges = Util.shift_image(edges, dx, dy)
 
@@ -87,7 +87,7 @@ for n, cell_id in enumerate(cell_ids):
         continue
 
     # Find brighest ribs.
-    rib_sums, peaks = Kymograph.find_intensity_peaks(tirf_mip, mesh, kymo_width)
+    rib_sums, peaks = Kymograph.find_intensity_peaks(tirf_std, mesh, kymo_width)
 
     # Generate kymographs at these ribs.
     for m, i in enumerate(peaks):
@@ -106,7 +106,7 @@ for n, cell_id in enumerate(cell_ids):
 
         bbox = Util.find_cell_bbox(object_labels, cell_id)
 
-        Diagnostics.debug_kymograph(tirf_mip,
+        Diagnostics.debug_kymograph(tirf_std,
                                     bbox,
                                     top_intersections[i],
                                     bot_intersections[i],

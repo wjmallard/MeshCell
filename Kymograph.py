@@ -91,7 +91,9 @@ def integrate_along_ribs(im, mesh, kymo_width):
 def find_intensity_peaks(im, mesh, kymo_width):
 
     rib_sums = integrate_along_ribs(im, mesh, kymo_width)
-    peaks, _ = find_peaks(rib_sums, height=rib_sums.mean())
+
+    X = detrend(rib_sums)
+    peaks, _ = find_peaks(X, height=0)
 
     return rib_sums, peaks
 
