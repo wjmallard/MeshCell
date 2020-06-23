@@ -52,8 +52,6 @@ def load_cropped_image(filename, x1, y1, x2, y2):
 
     assert y2 > y1
     assert x2 > x1
-    dy = y2 - y1
-    dx = x2 - x1
 
     with TiffFile(filename) as im:
 
