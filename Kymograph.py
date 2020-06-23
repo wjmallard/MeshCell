@@ -15,11 +15,13 @@ from scipy.optimize import curve_fit
 
 import Util
 
-def make_kymograph(filename, P1, P2, kymo_width):
+def make_kymograph(filename, rib, kymo_width):
 
     shape = Util.read_image_shape(filename)
     assert len(shape) == 3
     _, im_height, im_width = shape
+
+    _, P1, P2 = rib
 
     x1, y1 = P1
     x2, y2 = P2

@@ -81,7 +81,7 @@ for n, cell_id in enumerate(cell_ids):
         contour = Contours.generate(cell_id)
         skeleton = Skeleton.generate(contour)
         mesh = Mesh.make_ribs(contour, skeleton)
-        rib_starts, top_intersections, bot_intersections = mesh
+        ribs = np.array(mesh).transpose(1, 0, 2)
     except:
         print(' - Failed, skipping.')
         continue
@@ -95,10 +95,7 @@ for n, cell_id in enumerate(cell_ids):
         print(f' - Rib {i}. [{m + 1}/{len(peaks)}]')
 
         # Generate kymograph.
-        P1 = top_intersections[i]
-        P2 = bot_intersections[i]
-
-        kymograph = Kymograph.make_kymograph(TIRF_IMG, P1, P2, kymo_width)
+        kymograph = Kymograph.make_kymograph(TIRF_IMG, ribs[i], kymo_width)
 
         # Save results.
         title = f'{SAMPLE} {REPLICATE} - Cell {cell_id}, Rib {i}'
@@ -108,8 +105,7 @@ for n, cell_id in enumerate(cell_ids):
 
         Diagnostics.debug_kymograph(tirf_std,
                                     bbox,
-                                    top_intersections[i],
-                                    bot_intersections[i],
+                                    ribs[i],
                                     i,
                                     rib_sums,
                                     kymograph,
