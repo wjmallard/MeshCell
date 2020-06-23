@@ -82,6 +82,7 @@ for n, cell_id in enumerate(cell_ids):
         skeleton = Skeleton.generate(contour)
         mesh = Mesh.make_ribs(contour, skeleton)
         ribs = np.array(mesh).transpose(1, 0, 2)
+        assert not np.isnan(ribs).any()
     except:
         print(' - Failed, skipping.')
         continue
