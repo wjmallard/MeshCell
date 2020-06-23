@@ -99,7 +99,8 @@ for n, cell_id in enumerate(cell_ids):
         kymograph = Kymograph.make_kymograph(TIRF_IMG, ribs[i], kymo_width)
 
         # Save results.
-        title = f'{SAMPLE} {REPLICATE} - Cell {cell_id}, Rib {i}'
+        cx, cy = ribs[i][0].round().astype(np.int)
+        title = f'{SAMPLE} {REPLICATE} - Cell {cell_id}, Rib {i} - ({cx}, {cy})'
         filename = f'{SAMPLE}_{REPLICATE}__Cell_{cell_id:04}_rib_{i:04}.png'
 
         Diagnostics.debug_kymograph(tirf_std,
