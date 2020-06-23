@@ -114,8 +114,7 @@ def debug_contour(image, contour=None, skeleton=None, mesh=None, title=None, fil
 
 def debug_kymograph(image,
                     bbox,
-                    P1,
-                    P2,
+                    rib,
                     i,
                     rib_sums,
                     kymograph,
@@ -125,6 +124,8 @@ def debug_kymograph(image,
                     filename=None):
 
     padding = 10
+
+    _, P1, P2 = rib
 
     x1, y1 = P1
     x2, y2 = P2
