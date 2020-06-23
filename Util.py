@@ -57,16 +57,8 @@ def load_cropped_image(filename, x1, y1, x2, y2):
 
     with TiffFile(filename) as im:
 
-        num_frames = len(im.pages)
-        frame = im.pages[0]
-        stack_shape = (num_frames, dy, dx)
-
-        crop_stack = np.zeros(stack_shape, dtype=frame.dtype)
-        full_frame = np.zeros(frame.shape, dtype=frame.dtype)
-
-        for i, frame in enumerate(im.pages):
-            frame.asarray(out=full_frame)
-            crop_stack[i] = full_frame[y1:y2,x1:x2]
+        stack = im.asarray(out='memmap')
+        crop_stack = stack[:,y1:y2,x1:x2]
 
     return crop_stack
 
