@@ -15,13 +15,72 @@ from scipy.optimize import curve_fit
 
 import Util
 
+def make_line_endpoints(center, theta, length):
+    '''
+    Generate endpoint xy-coords of a line with the specified parameters.
+
+    Parameters
+    ----------
+    center : 2-tuple, float
+        Coordinates of the center of the line.
+    theta : float
+        Angle of the line, ccw from the x-axis.
+    length : float
+        Length, in pixels.
+
+    Returns
+    -------
+    (float, float), (float, float)
+        P1, P2. xy-coords for each end of the generated line.
+
+    '''
+    X = np.array((-length/2, length/2))
+    Y = np.zeros(2)
+
+    X_rot = X * np.cos(theta) - Y * np.sin(theta)
+    Y_rot = X * np.sin(theta) - Y * np.cos(theta)
+
+    x1, x2 = center[0] + X_rot
+    y1, y2 = center[1] + Y_rot
+
+    return (x1, y1), (x2, y2)
+
+def normalize_rib(rib, length):
+    '''
+    Length-normalize a rib.
+
+    The interpolation path should be a fixed length for all ribs,
+    regardless of cell's width at that point.
+
+    Parameters
+    ----------
+    rib : ((float, float), (float, float), (float, float))
+        xy-coords of: rib_start (on skeleton), rib_top, rib_bottom.
+    length : float
+        Length of new rib, in pixels.
+
+    Returns
+    -------
+    new_rib : ((float, float), (float, float), (float, float))
+        xy-coords of: rib_start (from input), rib_top, rib_bottom.
+
+    '''
+    C, P1, P2 = rib
+
+    dx, dy = P2 - P1
+    theta = np.arctan2(dy, dx)
+
+    new_P1, new_P2 = make_line_endpoints(C, theta, length)
+
+    return C, new_P1, new_P2
+
 def make_kymograph(filename, rib, kymo_width):
 
     shape = Util.read_image_shape(filename)
     assert len(shape) == 3
     _, im_height, im_width = shape
 
-    _, P1, P2 = rib
+    _, P1, P2 = normalize_rib(rib, 0, kymo_width)
 
     x1, y1 = P1
     x2, y2 = P2
