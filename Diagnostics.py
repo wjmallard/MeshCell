@@ -113,7 +113,6 @@ def debug_contour(image, contour=None, skeleton=None, mesh=None, title=None, fil
         plt.savefig(filename)
 
 def debug_kymograph(image,
-                    bbox,
                     rib,
                     i,
                     rib_sums,
@@ -123,15 +122,19 @@ def debug_kymograph(image,
                     title='',
                     filename=None):
 
-    padding = 10
+    window = 100
 
-    _, P1, P2 = rib
+    C, P1, P2 = rib
 
     x1, y1 = P1
     x2, y2 = P2
     Sy, Sx = image.shape
 
-    llx, lly, urx, ury = bbox
+    cx, cy = C
+    llx = cx - window // 2
+    lly = cy - window // 2
+    urx = cx + window // 2
+    ury = cy + window // 2
 
     plt.close('all')
 
@@ -164,9 +167,9 @@ def debug_kymograph(image,
     ax = ax2
     ax.imshow(image, cmap='gray')
 
-    xy = llx - padding, lly - padding
-    width = urx - llx + 2 * padding
-    height = ury - lly + 2 * padding
+    xy = llx, lly
+    width = window
+    height = window
 
     rect = Rectangle(xy,
                      width=width,
@@ -192,8 +195,8 @@ def debug_kymograph(image,
     if skeleton is not None:
         ax.plot(*skeleton.T, 'y:')
 
-    ax.set_xlim([llx - padding, urx + padding])
-    ax.set_ylim([lly - padding, ury + padding])
+    ax.set_xlim([llx, urx])
+    ax.set_ylim([lly, ury])
     ax.invert_yaxis()
 
     # Rib intensities

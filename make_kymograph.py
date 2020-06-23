@@ -101,10 +101,7 @@ for n, cell_id in enumerate(cell_ids):
         title = f'{SAMPLE} {REPLICATE} - Cell {cell_id}, Rib {i}'
         filename = f'{SAMPLE}_{REPLICATE}__Cell_{cell_id:04}_rib_{i:04}.png'
 
-        bbox = Util.find_cell_bbox(object_labels, cell_id)
-
         Diagnostics.debug_kymograph(tirf_std,
-                                    bbox,
                                     ribs[i],
                                     i,
                                     rib_sums,
