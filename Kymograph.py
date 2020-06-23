@@ -80,7 +80,7 @@ def make_kymograph(filename, rib, kymo_width):
     assert len(shape) == 3
     _, im_height, im_width = shape
 
-    _, P1, P2 = normalize_rib(rib, 0, kymo_width)
+    _, P1, P2 = normalize_rib(rib, kymo_width)
 
     x1, y1 = P1
     x2, y2 = P2
