@@ -161,8 +161,18 @@ def find_intensity_peaks(im, mesh, kymo_width):
 def gauss(x, A, mu, sigma, offset):
     return A * np.exp(-(x - mu) ** 2 / (2. * sigma ** 2)) + offset
 
-def fit_gaussian(X, Y):
-    popt, pcov = curve_fit(gauss, X, Y, p0=[1, 1, 1, 1])
+def fit_gaussian(Y, X=None):
+
+    if X is None:
+        X = np.arange(len(Y))
+
+    # Initial guess:
+    a = Y.max() - Y.min()
+    m = X.mean()
+    s = X.std()
+    o = Y.min()
+
+    popt, pcov = curve_fit(gauss, X, Y, p0=[a, m, s, o])
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
@@ -171,10 +181,9 @@ def collapse_kymo_to_1d(K):
     num_rows, num_cols = K.shape
     assert num_rows > num_cols
 
-    X = np.arange(num_cols)
     Y = K.sum(axis=0)
 
-    G = fit_gaussian(X, Y)
+    G = fit_gaussian(Y)
 
     mu = G[0][1]
     mu = int(round(mu))
