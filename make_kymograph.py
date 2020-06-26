@@ -61,10 +61,9 @@ edges = Util.shift_image(edges, dx, dy)
 # Segment cells.
 print(f'Extracting segmented regions.')
 object_labels = Segmentation.segment_deepcell_masks(cells)
-bg_id = Segmentation.identify_background(cells, object_labels)
 
-# Filter low quality objects.
-object_labels = Segmentation.size_filter(object_labels, 200, bg_id)
+bg_id = Segmentation.identify_background(cells, object_labels)
+too_small = Segmentation.size_filter(object_labels, 200)
 cell_ids = Segmentation.sort_by_intensity(cells, object_labels)
 
 # Prepare contour generator.
@@ -77,6 +76,10 @@ for n, cell_id in enumerate(cell_ids):
 
     if cell_id == bg_id:
         print(' - Background, skipping.')
+        continue
+
+    if cell_id in too_small:
+        print(' - Too small, skipping.')
         continue
 
     # Generate mesh.

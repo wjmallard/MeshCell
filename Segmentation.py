@@ -130,16 +130,12 @@ def identify_background(im, object_labels, im_type=None):
 
     return bg_label
 
-def size_filter(object_labels, min_area, bg_label):
+def size_filter(object_labels, min_area):
 
     labels, areas = np.unique(object_labels, return_counts=True)
-
     labels_to_remove = labels[areas < min_area]
 
-    for label in labels_to_remove:
-        object_labels[object_labels == label] = bg_label
-
-    return object_labels
+    return set(labels_to_remove)
 
 def sort_by_intensity(im, object_labels):
 
