@@ -104,7 +104,7 @@ for n, cell_id in enumerate(cell_ids):
         # Save results.
         cx, cy = ribs[i][0].round().astype(np.int)
         title = f'{SAMPLE} {REPLICATE} - Cell {cell_id}, Rib {i} - ({cx}, {cy})'
-        filename = f'{SAMPLE}_{REPLICATE}__Cell_{cell_id:04}_rib_{i:04}.png'
+        filename = f'{SAMPLE}_{REPLICATE}__Rank_{n:04}_Cell_{cell_id:04}_rib_{i:04}.png'
 
         Diagnostics.debug_kymograph(tirf_std,
                                     ribs[i],
