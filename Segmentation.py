@@ -129,3 +129,14 @@ def identify_background(im, object_labels, im_type=None):
         bg_label = labels[np.argmin(mean_intensities)]
 
     return bg_label
+
+def size_filter(object_labels, min_area, bg_label):
+
+    labels, areas = np.unique(object_labels, return_counts=True)
+
+    labels_to_remove = labels[areas < min_area]
+
+    for label in labels_to_remove:
+        object_labels[object_labels == label] = bg_label
+
+    return object_labels

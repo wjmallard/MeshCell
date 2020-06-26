@@ -63,6 +63,9 @@ print(f'Extracting segmented regions.')
 object_labels = Segmentation.segment_deepcell_masks(cells)
 bg_id = Segmentation.identify_background(cells, object_labels)
 
+# Filter low quality objects.
+object_labels = Segmentation.size_filter(object_labels, 200, bg_id)
+
 # Prepare contour generator.
 Contours = Contour.ContourGenerator(edges, object_labels)
 
