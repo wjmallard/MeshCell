@@ -203,6 +203,16 @@ def fit_sine(Y, X=None):
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
+def find_kymo_trace(kymograph):
+
+    params = [fit_gaussian(row) for row in kymograph]
+    values = np.array([p[0] for p in params])
+    errors = np.array([p[1] for p in params])
+
+    mu = values[:,1]
+
+    return mu
+
 def collapse_kymo_to_1d(K):
 
     num_rows, num_cols = K.shape
