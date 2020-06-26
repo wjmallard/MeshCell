@@ -5,6 +5,7 @@
 @author Shicong Xie (xies)
 @date April 2020
 """
+import numpy as np
 import matplotlib.pyplot as plt
 
 from matplotlib.patches import Rectangle
@@ -137,6 +138,32 @@ def debug_kymograph(image,
     # Kymograph
     ax = ax5
     ax.imshow(kymograph, cmap='gray')
+
+    if filename is not None:
+        plt.savefig(filename)
+
+def debug_kymo_trace(values, errors, filename=None):
+
+    X = np.arange(values.shape[0])
+    xmax = X.max()
+
+    def plot_with_errorbars(ax, val, err, title):
+        ax.plot(val, color='black', linewidth=1)
+        ax.fill_between(X, val - err, val + err, color='gray', alpha=.2)
+        ax.set_xlim(0, xmax)
+        ax.set_title(title)
+
+    plt.close('all')
+
+    fig, axes = plt.subplots(2, 2, sharex=True, figsize=(12, 6))
+    axes = axes.ravel()
+
+    plot_with_errorbars(axes[0], values[:,0], errors[:,0], 'Amplitude')
+    plot_with_errorbars(axes[1], values[:,1], errors[:,1], 'Mu')
+    plot_with_errorbars(axes[2], values[:,3], errors[:,3], 'Offset')
+    plot_with_errorbars(axes[3], values[:,2], errors[:,2], 'Sigma')
+
+    fig.tight_layout()
 
     if filename is not None:
         plt.savefig(filename)
