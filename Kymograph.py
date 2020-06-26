@@ -176,6 +176,33 @@ def fit_gaussian(Y, X=None):
     perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
+def sine(x, A, w, p, C):
+    return A * np.sin(w * x + p) + C
+
+def fit_sine(Y, X=None):
+
+    if X is None:
+        X = np.arange(len(Y))
+
+    # Find dominant frequency.
+    n_timepoints = len(Y)
+    dt = X[1] - X[0]
+    ff = abs(rfftfreq(n_timepoints, dt))
+
+    F = abs(rfft(Y))
+    F[0] = 0
+    f_dominant = ff[np.argmax(F)]
+
+    # Initial guess:
+    a = Y.std() * 2**.5
+    w = 2 * np.pi * f_dominant
+    p = 0.
+    c = Y.mean()
+
+    popt, pcov = curve_fit(sine, X, Y, p0=[a, w, p, c])
+    perr = np.sqrt(np.diag(pcov))
+    return popt, perr
+
 def collapse_kymo_to_1d(K):
 
     num_rows, num_cols = K.shape
