@@ -137,6 +137,15 @@ def size_filter(object_labels, min_area):
 
     return set(labels_to_remove)
 
+def intensity_filter(im, object_labels, min_intensity):
+
+    mean_intensity = lambda label: im[object_labels == label].mean()
+
+    labels_to_remove = [label for label in np.unique(object_labels)
+                        if mean_intensity(label) < min_intensity]
+
+    return set(labels_to_remove)
+
 def sort_by_intensity(im, object_labels):
 
     mean_intensity = lambda label: im[object_labels == label].mean()
