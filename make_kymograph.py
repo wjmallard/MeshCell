@@ -65,12 +65,12 @@ bg_id = Segmentation.identify_background(cells, object_labels)
 
 # Filter low quality objects.
 object_labels = Segmentation.size_filter(object_labels, 200, bg_id)
+cell_ids = Segmentation.sort_by_intensity(cells, object_labels)
 
 # Prepare contour generator.
 Contours = Contour.ContourGenerator(edges, object_labels)
 
 print(f'Processing cells.')
-cell_ids = np.unique(object_labels)
 for n, cell_id in enumerate(cell_ids):
 
     print(f'Cell {cell_id}. [{cell_id + 1}/{len(cell_ids)}]')

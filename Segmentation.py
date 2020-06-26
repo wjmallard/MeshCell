@@ -140,3 +140,12 @@ def size_filter(object_labels, min_area, bg_label):
         object_labels[object_labels == label] = bg_label
 
     return object_labels
+
+def sort_by_intensity(im, object_labels):
+
+    mean_intensity = lambda label: im[object_labels == label].mean()
+
+    labels = list(np.unique(object_labels))
+    labels.sort(key=mean_intensity, reverse=True)
+
+    return labels
