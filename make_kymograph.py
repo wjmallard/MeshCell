@@ -46,7 +46,7 @@ assert os.path.exists(EDGE_IMG), f'Cannot open: {EDGE_IMG}'
 
 kymo_width = 20  # pixels
 min_area = 200  # pixels
-min_intensity = 10  # average pixel intensity
+min_percentile = 50  # percentile
 
 # Load images.
 print(f'Loading images.')
@@ -66,7 +66,7 @@ object_labels = Segmentation.segment_deepcell_masks(cells)
 
 bg_id = Segmentation.identify_background(cells, object_labels)
 too_small = Segmentation.size_filter(object_labels, min_area)
-too_dim = Segmentation.intensity_filter(cells, object_labels, min_intensity)
+too_dim = Segmentation.intensity_filter(cells, object_labels, min_percentile)
 cell_ids = Segmentation.sort_by_intensity(cells, object_labels)
 
 # Prepare contour generator.
