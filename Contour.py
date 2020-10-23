@@ -27,12 +27,12 @@ def get_cell_boundary_coords(object_labels, cell_id):
     '''
     cell_mask = object_labels == cell_id
 
-    c = find_contours(cell_mask, level=.9)
+    contours = find_contours(cell_mask, level=.9)
 
-    # If no contours (or multiple contours) are found:
-    if len(c) != 1: return None, None
+    if len(contours) == 0:
+        return None, None
 
-    C = c[0]
+    C = select_longest_contour(contours)
 
     # If an object intersects the edge of an image,
     # find_contours() will leave the contour open.
@@ -43,6 +43,16 @@ def get_cell_boundary_coords(object_labels, cell_id):
     Y, X = C.T
 
     return X, Y
+
+def select_longest_contour(contours):
+
+    longest = []
+
+    for contour in contours:
+        if len(contour) > len(longest):
+            longest = contour
+
+    return longest
 
 def evenly_distribute_contour_points(X_old, Y_old):
 
