@@ -64,7 +64,7 @@ Contours = Contour.ContourGenerator(edges, masks)
 cell_ids = np.unique(masks)
 cell_ids = cell_ids[cell_ids > 0]
 
-Results = {}
+Cells = {}
 
 for cell_id in cell_ids:
 
@@ -73,23 +73,25 @@ for cell_id in cell_ids:
     contour = Contours.generate(cell_id)
     skeleton = Skeleton.generate(contour)
     if skeleton is None:
-        print('   Skeletonization failed. Skipping.')
+        print(' * Skeletonization failed. Skipping.')
         continue
     rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(contour, skeleton)
 
-    Results[cell_id] = (
-        contour,
-        skeleton,
-        rib_starts,
-        top_intersections,
-        bot_intersections,
-    )
+    Cells[cell_id] = {
+        'Contour': contour,
+        'Skeleton': skeleton,
+        'Ribs': {
+            'Start': rib_starts,
+            'Top': top_intersections,
+            'Bot': bot_intersections,
+        }
+    }
 
 # Save contours to a .npz file.
 outfile = basefile + '.contours'
 print('Saving contours to disk.')
-print(f' - {outfile}')
-np.savez(outfile, Cells=Results)
+print(f' - {outfile}.npz')
+np.savez(outfile, Cells=Cells)
 
 #
 # Display results.
@@ -112,13 +114,13 @@ ax = fig.add_axes([0, 0, 1, 1], **axis_args)
 ax.imshow(image, cmap='Greys_r')
 
 
-for cell_id, result in Results.items():
+for cell_id, Cell in Cells.items():
 
-    (contour,
-     skeleton,
-     rib_starts,
-     top_intersections,
-     bot_intersections) = result
+    contour = Cell['Contour']
+    skeleton = Cell['Skeleton']
+    rib_starts = Cell['Ribs']['Start']
+    top_intersections = Cell['Ribs']['Top']
+    bot_intersections = Cell['Ribs']['Bot']
 
     for i in range(len(rib_starts)):
 
