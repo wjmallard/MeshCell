@@ -5,18 +5,50 @@
 @author Shicong Xie (xies)
 @date April 2020
 """
+#
+# Parse command line arguments.
+#
+import sys
+from pathlib import Path
+try:
+    IMAGE = sys.argv[1]
+
+    assert IMAGE.endswith('.tif')
+    basefile = IMAGE[:-len('.tif')]
+
+    EDGES = basefile + '-c0.tif'
+    MASKS = basefile + '-c1.cell_markers.tif'
+
+    assert Path(EDGES).exists()
+    assert Path(MASKS).exists()
+
+except:
+    script = sys.argv[0].split('/')[-1]
+    print(f'Usage: {script} IMAGE', file=sys.stderr)
+    print()
+    print('where IMAGE ends with .tif, and is accompanied by two more images:')
+    print(' - IMAGE-c0.tif : raw DeepCell edge channel')
+    print(' - IMAGE-c1.cell_markers.tif : post-processed DeepCell cell channel')
+    sys.exit(1)
+
+#
+# Load libraries.
+#
 import numpy as np
 from skimage import io
-from pathlib import Path
 import matplotlib.pyplot as plt
 
 import Contour
 import Skeleton
 import Mesh
 
-IMAGE = '/Volumes/Delphium/Microscopy/Red_Segmentation/image001-red -- 2021.08.10 bWM98 CH No IPTG FM5-95__bWM98 CH No IPTG 002-001 FM5-95.tif'
-EDGES = '/Volumes/Delphium/Microscopy/Red_Segmentation/image001-red -- 2021.08.10 bWM98 CH No IPTG FM5-95__bWM98 CH No IPTG 002-001 FM5-95-c0.tif'
-MASKS = '/Volumes/Delphium/Microscopy/Red_Segmentation/image001-red -- 2021.08.10 bWM98 CH No IPTG FM5-95__bWM98 CH No IPTG 002-001 FM5-95-c1.cell_markers.tif'
+#
+# Load images.
+#
+print('Loading images.')
+print(f' - {IMAGE}')
+print(f' - {EDGES}')
+print(f' - {MASKS}')
 
 image = io.imread(IMAGE, as_gray=True)
 edges = io.imread(EDGES, as_gray=True)
@@ -25,6 +57,8 @@ masks = io.imread(MASKS, as_gray=True)
 #
 # Generate contours.
 #
+print('Generating contours.')
+
 Contours = Contour.ContourGenerator(edges, masks)
 
 cell_ids = np.unique(masks)
@@ -34,7 +68,7 @@ Results = {}
 
 for cell_id in cell_ids:
 
-    print(f'Processing cell #{cell_id}.')
+    print(f' - Cell {cell_id}')
 
     contour = Contours.generate(cell_id)
     skeleton = Skeleton.generate(contour)
@@ -49,8 +83,9 @@ for cell_id in cell_ids:
     )
 
 # Save contours to a .npz file.
-p = Path(IMAGE)
-outfile = p.parent.joinpath(p.stem + '.contours')
+outfile = basefile + '.contours'
+print('Saving contours to disk.')
+print(f' - {outfile}')
 np.savez(outfile, Results)
 
 #
@@ -101,5 +136,10 @@ for cell_id, result in Results.items():
              ha='center',
              va='center')
 
-outfile = IMAGE + '.png'
+# Save plot to disk.
+outfile = basefile + '.png'
+print('Saving plot to disk.')
+print(f' - {outfile}')
 plt.savefig(outfile)
+
+print('Done.')
