@@ -18,6 +18,7 @@ extension_factor = 20
 
 def generate(contour):
     skel = build_skeleton(contour)
+    if len(skel) < 5: return None
     skel = extend_skeleton(skel, contour)
     return skel
 

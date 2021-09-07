@@ -72,6 +72,9 @@ for cell_id in cell_ids:
 
     contour = Contours.generate(cell_id)
     skeleton = Skeleton.generate(contour)
+    if skeleton is None:
+        print('   Skeletonization failed. Skipping.')
+        continue
     rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(contour, skeleton)
 
     Results[cell_id] = (
@@ -142,4 +145,4 @@ print('Saving plot to disk.')
 print(f' - {outfile}')
 plt.savefig(outfile)
 
-print('Done.')
+print('Done.\n')
