@@ -18,8 +18,10 @@ extension_factor = 20
 
 def generate(contour):
     skel = build_skeleton(contour)
-    if len(skel) < 5: return None
-    skel = extend_skeleton(skel, contour)
+    try:
+        skel = extend_skeleton(skel, contour)
+    except IndexError:
+        return None
     return skel
 
 def find_leaves(Branches):
