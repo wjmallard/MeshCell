@@ -7,6 +7,7 @@
 """
 import numpy as np
 from skimage import io
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 import Contour
@@ -46,6 +47,11 @@ for cell_id in cell_ids:
         top_intersections,
         bot_intersections,
     )
+
+# Save contours to a .npz file.
+p = Path(IMAGE)
+outfile = p.parent.joinpath(p.stem + '.contours')
+np.savez(outfile, Results)
 
 #
 # Display results.
