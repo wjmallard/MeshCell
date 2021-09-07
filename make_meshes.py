@@ -21,20 +21,35 @@ image = io.imread(IMAGE, as_gray=True)
 edges = io.imread(EDGES, as_gray=True)
 masks = io.imread(MASKS, as_gray=True)
 
+#
+# Generate contours.
+#
 Contours = Contour.ContourGenerator(edges, masks)
 
-# TODO: Loop over all cells.
-# num_cells = object_labels.max() + 1
-# for cell_id in range(num_cells):
-#     X, Y = get_cell_boundary_coords(object_labels, cell_id)
-#     if X is None: continue
-cell_id = 6
+cell_ids = np.unique(masks)
+cell_ids = cell_ids[cell_ids > 0]
 
-contour = Contours.generate(cell_id)
-skeleton = Skeleton.generate(contour)
-rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(contour, skeleton)
+Results = {}
 
+for cell_id in cell_ids:
 
+    print(f'Processing cell #{cell_id}.')
+
+    contour = Contours.generate(cell_id)
+    skeleton = Skeleton.generate(contour)
+    rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(contour, skeleton)
+
+    Results[cell_id] = (
+        contour,
+        skeleton,
+        rib_starts,
+        top_intersections,
+        bot_intersections,
+    )
+
+#
+# Display results.
+#
 plt.close('all')
 
 dpi = 100
@@ -50,25 +65,35 @@ axis_args = {
 
 # Rectangle coordinates: [left, bottom, width, height]
 ax = fig.add_axes([0, 0, 1, 1], **axis_args)
-
 ax.imshow(image, cmap='Greys_r')
 
-ax.plot(*contour.T, 'k-')
-ax.plot(*skeleton.T, 'r-')
 
-x, y = skeleton[len(skeleton)//2]
-s = str(cell_id)
-ax.text(x, y, s,
-         size=12,
-         ha='center',
-         va='center')
+for cell_id, result in Results.items():
 
-for i in range(len(rib_starts)):
+    (contour,
+     skeleton,
+     rib_starts,
+     top_intersections,
+     bot_intersections) = result
 
-    xs, ys = rib_starts[i]
-    xt, yt = top_intersections[i]
-    xb, yb = bot_intersections[i]
+    for i in range(len(rib_starts)):
 
-    plt.plot([xs, xt], [ys, yt], 'green', alpha=.2)
-    plt.plot([xs, xb], [ys, yb], 'green', alpha=.2)
+        xs, ys = rib_starts[i]
+        xt, yt = top_intersections[i]
+        xb, yb = bot_intersections[i]
 
+        plt.plot([xs, xt], [ys, yt], 'green', alpha=.2)
+        plt.plot([xs, xb], [ys, yb], 'green', alpha=.2)
+
+    ax.plot(*contour.T, 'k-')
+    ax.plot(*skeleton.T, 'r-')
+
+    x, y = skeleton[len(skeleton)//2]
+    s = str(cell_id)
+    ax.text(x, y, s,
+             size=12,
+             ha='center',
+             va='center')
+
+outfile = IMAGE + '.png'
+plt.savefig(outfile)
