@@ -86,7 +86,7 @@ for cell_id in cell_ids:
 outfile = basefile + '.contours'
 print('Saving contours to disk.')
 print(f' - {outfile}')
-np.savez(outfile, Results)
+np.savez(outfile, Cells=Results)
 
 #
 # Display results.
