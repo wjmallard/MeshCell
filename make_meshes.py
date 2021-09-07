@@ -5,20 +5,23 @@
 @author Shicong Xie (xies)
 @date April 2020
 """
+import numpy as np
 from skimage import io
 import matplotlib.pyplot as plt
 
-import Segmentation
 import Contour
 import Skeleton
 import Mesh
 
-FILENAME = '/Users/wmallard/Desktop/Microscopy/test.tif'
+IMAGE = '/Volumes/Delphium/Microscopy/Red_Segmentation/image001-red -- 2021.08.10 bWM98 CH No IPTG FM5-95__bWM98 CH No IPTG 002-001 FM5-95.tif'
+EDGES = '/Volumes/Delphium/Microscopy/Red_Segmentation/image001-red -- 2021.08.10 bWM98 CH No IPTG FM5-95__bWM98 CH No IPTG 002-001 FM5-95-c0.tif'
+MASKS = '/Volumes/Delphium/Microscopy/Red_Segmentation/image001-red -- 2021.08.10 bWM98 CH No IPTG FM5-95__bWM98 CH No IPTG 002-001 FM5-95-c1.cell_markers.tif'
 
-im = io.imread(FILENAME, as_gray=True)
-object_labels = Segmentation.segment_deepcell_masks(im)
+image = io.imread(IMAGE, as_gray=True)
+edges = io.imread(EDGES, as_gray=True)
+masks = io.imread(MASKS, as_gray=True)
 
-Contours = Contour.ContourGenerator(im, object_labels)
+Contours = Contour.ContourGenerator(edges, masks)
 
 # TODO: Loop over all cells.
 # num_cells = object_labels.max() + 1
@@ -33,8 +36,32 @@ rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(contour, skele
 
 
 plt.close('all')
-plt.plot(*contour.T, 'ko-')
-plt.plot(*skeleton.T, 'rx-')
+
+dpi = 100
+y, x = np.array(image.shape) / dpi
+
+fig = plt.figure(figsize=(x, y), dpi=dpi)
+axis_args = {
+    'xticks': [],
+    'yticks': [],
+    'xticklabels': [],
+    'yticklabels': [],
+}
+
+# Rectangle coordinates: [left, bottom, width, height]
+ax = fig.add_axes([0, 0, 1, 1], **axis_args)
+
+ax.imshow(image, cmap='Greys_r')
+
+ax.plot(*contour.T, 'k-')
+ax.plot(*skeleton.T, 'r-')
+
+x, y = skeleton[len(skeleton)//2]
+s = str(cell_id)
+ax.text(x, y, s,
+         size=12,
+         ha='center',
+         va='center')
 
 for i in range(len(rib_starts)):
 
@@ -42,6 +69,6 @@ for i in range(len(rib_starts)):
     xt, yt = top_intersections[i]
     xb, yb = bot_intersections[i]
 
-    plt.plot([xs, xt], [ys, yt], 'b')
-    plt.plot([xs, xb], [ys, yb], 'b')
+    plt.plot([xs, xt], [ys, yt], 'green', alpha=.2)
+    plt.plot([xs, xb], [ys, yb], 'green', alpha=.2)
 
