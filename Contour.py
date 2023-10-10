@@ -116,9 +116,9 @@ def find_segment_intersection(L1, L2, C):
         intersection_criterion = (0. <= T) & (T <= 1.) & (0. <= U) & (U <= 1.)
 
         if intersection_criterion.any():
-            # TODO: Assumes for now only a single intersection is found per
-            # segment, but need to handle multiple intersection cases
-            intersection_index = np.where(intersection_criterion)[0]
+            # TODO: Assumes there is only a single intersection per segment.
+            # Should handle the case where multiple intersections are found.
+            intersection_index = np.where(intersection_criterion)[0][0]
 
             # Calculate intersection point.
             t = T[intersection_index]
