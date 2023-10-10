@@ -13,21 +13,21 @@ from scipy.interpolate import RectBivariateSpline
 max_iter = 300
 step_size = 0.1
 
-def get_cell_boundary_coords(object_labels, cell_id):
+def get_cell_boundary_coords(masks, cell_id):
     '''
     Find the boundary coordinates of a particular cell.
     
     Arguments:
-        object_labels - int matrix; labels which object each pixel belongs to
+        masks - int matrix; labels which object each pixel belongs to
         cell_id - specifies which object to find the boundary coords of
     
     Returns:
         X, Y - coordinates of the cell's boundary,
                ordered counter clockwise around the contour
     '''
-    cell_mask = object_labels == cell_id
+    mask = masks == cell_id
 
-    contours = find_contours(cell_mask, level=.9)
+    contours = find_contours(mask, level=.9)
 
     if len(contours) == 0:
         return None, None
@@ -64,7 +64,7 @@ def evenly_distribute_contour_points(X_old, Y_old):
 
     # Create new coordinates along the contour with even 1-pixel spacing.
     C_length = C_old[-1]
-    C_new = np.linspace(0, C_length, np.int(np.round(C_length)))
+    C_new = np.linspace(0, C_length, int(np.round(C_length)))
     
     # Find the distance between each new (evenly spaced) anchor point
     # and the next-smallest old (unevenly spaced) anchor point.
@@ -136,11 +136,10 @@ def find_segment_intersection(L1, L2, C):
 class ContourGenerator:
     '''
     Generates a smooth contour for any given cell_id.
-    
     '''
-    def __init__(self, image, object_labels):
+    def __init__(self, image, masks):
 
-        self.object_labels = object_labels
+        self.masks = masks
 
         # Compute gradient of smoothed images.
         Fx = sobel_v(image)
@@ -158,7 +157,7 @@ class ContourGenerator:
         
         # Get the pixel coordinates of current cell's boundary,
         # returns X and Y that wraps around contour (no break b/w end and beginning)
-        X, Y = get_cell_boundary_coords(self.object_labels, cell_id)
+        X, Y = get_cell_boundary_coords(self.masks, cell_id)
         X_old, Y_old = X, Y
         
         for i in range(max_iter):
