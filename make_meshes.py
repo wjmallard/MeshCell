@@ -16,19 +16,17 @@ try:
     assert IMAGE.endswith('.tif')
     basefile = IMAGE[:-len('.tif')]
 
-    EDGES = basefile + '-c0.tif'
-    MASKS = basefile + '-c1.cell_markers.tif'
+    MASKS = f'{basefile}.masks_edited.tif'
 
-    assert Path(EDGES).exists()
+    assert Path(IMAGE).exists()
     assert Path(MASKS).exists()
 
 except:
     script = sys.argv[0].split('/')[-1]
-    print(f'Usage: {script} IMAGE', file=sys.stderr)
+    print(f'Usage: {script} IMAGE.tif', file=sys.stderr)
     print()
-    print('where IMAGE ends with .tif, and is accompanied by two more images:')
-    print(' - IMAGE-c0.tif : raw DeepCell edge channel')
-    print(' - IMAGE-c1.cell_markers.tif : post-processed DeepCell cell channel')
+    print('where IMAGE ends with .tif, and is accompanied by:')
+    print(' - IMAGE.masks_edited.tif : curated cell masks')
     sys.exit(1)
 
 #
@@ -47,11 +45,9 @@ import Mesh
 #
 print('Loading images.')
 print(f' - {IMAGE}')
-print(f' - {EDGES}')
 print(f' - {MASKS}')
 
 image = io.imread(IMAGE, as_gray=True)
-edges = io.imread(EDGES, as_gray=True)
 masks = io.imread(MASKS, as_gray=True)
 
 #
@@ -59,7 +55,7 @@ masks = io.imread(MASKS, as_gray=True)
 #
 print('Generating contours.')
 
-Contours = Contour.ContourGenerator(edges, masks)
+Contours = Contour.ContourGenerator(image, masks)
 
 cell_ids = np.unique(masks)
 cell_ids = cell_ids[cell_ids > 0]
@@ -112,7 +108,6 @@ axis_args = {
 # Rectangle coordinates: [left, bottom, width, height]
 ax = fig.add_axes([0, 0, 1, 1], **axis_args)
 ax.imshow(image, cmap='Greys_r')
-
 
 for cell_id, Cell in Cells.items():
 
