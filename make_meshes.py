@@ -48,16 +48,71 @@ print(f' - {IMAGE}')
 print(f' - {MASKS}')
 
 image = io.imread(IMAGE, as_gray=True)
-masks = io.imread(MASKS, as_gray=True)
+cell_masks = io.imread(MASKS, as_gray=True)
 
 #
-# Generate contours.
+# Generate chain masks.
 #
-print('Generating contours.')
+print('Generating chain masks.')
 
-Contours = Contour.ContourGenerator(image, masks)
+import pandas as pd
+from skimage.measure import label as label_connected
 
-cell_ids = np.unique(masks)
+def assign_cells_to_chains(cell_masks):
+    '''
+    Merge cells into chains.
+    '''
+    cell_labels = np.unique(cell_masks)
+    cell_labels = cell_labels[cell_labels > 0]
+
+    # Create a unique label for each chain.
+    chain_masks = label_connected(cell_masks > 0)
+
+    # Assign each cell to a chain.
+    chain_assignments = pd.Series(data=-1, index=cell_labels, dtype=int)
+
+    for cell_label in cell_labels:
+        chain_assignments[cell_label] = chain_masks[cell_masks == cell_label][0]
+
+    return chain_masks, chain_assignments
+
+chain_masks, chain_assignments = assign_cells_to_chains(cell_masks)
+
+#
+# Generate chain contours and skeletons.
+#
+print('Generating chain contours and skeletons.')
+
+Contours = Contour.ContourGenerator(image, chain_masks)
+
+chain_ids = np.unique(chain_masks)
+chain_ids = chain_ids[chain_ids > 0]
+
+Chains = {}
+
+for chain_id in chain_ids:
+
+    print(f' - Chain {chain_id}')
+
+    contour = Contours.generate(chain_id)
+    skeleton = Skeleton.generate(contour)
+    if skeleton is None:
+        print(' * Skeletonization failed. Skipping.')
+        continue
+
+    Chains[chain_id] = {
+        'Contour': contour,
+        'Skeleton': skeleton,
+    }
+
+#
+# Generate cell contours.
+#
+print('Generating cell contours.')
+
+Contours = Contour.ContourGenerator(image, cell_masks)
+
+cell_ids = np.unique(cell_masks)
 cell_ids = cell_ids[cell_ids > 0]
 
 Cells = {}

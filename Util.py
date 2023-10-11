@@ -139,3 +139,10 @@ def find_cell_bbox(object_labels, cell_id):
     lly, llx, ury, urx = props[0]['bbox']
 
     return llx, lly, urx, ury
+
+def find_contour_bbox(contour):
+
+    llx, lly = contour.min(axis=0)
+    urx, ury = contour.max(axis=0)
+
+    return llx, lly, urx, ury

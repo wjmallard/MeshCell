@@ -109,8 +109,8 @@ def build_skeleton(contour):
     # Build a connectivity graph of all edges in the contour's interior.
     #
     # Use a dictionary where:
-    #   - k: vertex index
-    #   - v: list of vertex indices
+    #   - key: vertex index
+    #   - val: list of vertex indices
     # These all index into V.
     Neighbors = defaultdict(list)
 
@@ -189,6 +189,60 @@ def build_skeleton(contour):
     return skeleton
 
 def extend_skeleton(skeleton, contour):
+
+    skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
+    skeleton = np.array(skeleton).T
+
+    interior_points = [Contour.is_point_in_polygon(skeleton[i], contour)
+                       for i in range(len(skeleton))]
+
+    skeleton_cropped = np.concatenate((
+        [[np.nan, np.nan]],
+        skeleton[interior_points],
+        [[np.nan, np.nan]],
+    ))
+
+    if not interior_points[0]:
+        # If the left end touches the contour:
+        # - Find the index just outside the contour.
+        # - Create a line crossing the contour.
+        # - Intersect the line with the contour.
+        # - Assign that point to the left end of the cropped skeleton.
+        idx = np.where(np.diff(interior_points))[0][0]
+        cross = skeleton[idx:idx+2]
+        skeleton_cropped[0] = Contour.find_contour_intersections(cross, contour)[0]
+    else:
+        # If the left end does not touch the contour:
+        # - Find the left-most point of the skeleton.
+        # - Find the nearest point on the contour.
+        # - Assign that point to the left end of the cropped skeleton.
+        point = skeleton[0]
+        skeleton_cropped[0] = Contour.find_nearest_point_on_contour(point, contour)
+
+    if not interior_points[-1]:
+        # If the right end touches the contour:
+        # - Find the index just inside the contour.
+        # - Create a line crossing the contour.
+        # - Intersect the line with the contour.
+        # - Assign that point to the right end of the cropped skeleton.
+        idx = np.where(np.diff(interior_points))[0][-1]
+        cross = skeleton[idx:idx+2]
+        skeleton_cropped[-1] = Contour.find_contour_intersections(cross, contour)[0]
+    else:
+        # If the right end does not touch the contour:
+        # - Find the right-most point of the skeleton.
+        # - Find the nearest point on the contour.
+        # - Assign that point to the right end of the cropped skeleton.
+        point = skeleton[-1]
+        skeleton_cropped[-1] = Contour.find_nearest_point_on_contour(point, contour)
+
+    # Interpolate again on the whole extended skeleton.
+    skeleton_final = Contour.evenly_distribute_contour_points(*skeleton_cropped.T)
+    skeleton_final = np.vstack(skeleton_final).T
+
+    return skeleton_final
+
+def extend_skeleton_(skeleton, contour):
 
     skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
     skeleton = np.array(skeleton).T

@@ -133,6 +133,127 @@ def find_segment_intersection(L1, L2, C):
 
     return intersections
 
+def find_contour_intersections(L, C):
+    '''
+    Find intersections between a line and a closed contour.
+
+    https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    Retrieved: April 30, 2020.
+    '''
+    # Load contour #1 points.
+    X1, Y1 = L[:-1].T
+    X2, Y2 = L[1:].T
+
+    # Load contour #2 points.
+    X3, Y3 = C[:-1].T
+    X4, Y4 = C[1:].T
+
+    # Add a dimension to contour #1 for broadcasting.
+    X1 = X1[:,None]
+    X2 = X2[:,None]
+    Y1 = Y1[:,None]
+    Y2 = Y2[:,None]
+
+    # Test every pair of contour edges for intersection.
+    D = (X1 - X2) * (Y3 - Y4) - (Y1 - Y2) * (X3 - X4)
+    T = (X1 - X3) * (Y3 - Y4) - (Y1 - Y3) * (X3 - X4)
+    U = (X1 - X2) * (Y1 - Y3) - (Y1 - Y2) * (X1 - X3)
+
+    T /= D
+    U /= -D
+
+    intersection_criterion = (0. <= T) & (T <= 1.) & (0. <= U) & (U <= 1.)
+
+    # Result: A boolean matrix with shape (|L| - 1) x (|C| - 1).
+    # Each True element is an intersection between L and C.
+    # If matrix position (r, c) is True, then L[r] and C[c] are
+    # the (x,y) coordinates of points nearest that intersection.
+
+    intersections = []
+
+    if intersection_criterion.any():
+
+        L_idx, C_idx = np.where(intersection_criterion)
+
+        for l, c in zip(L_idx, C_idx):
+
+            Px = X1[l,0] + T[l,c] * (X2[l,0] - X1[l,0])
+            Py = Y1[l,0] + T[l,c] * (Y2[l,0] - Y1[l,0])
+
+            intersections.append((Px, Py))
+
+    else:
+        intersections.append((np.nan, np.nan))
+
+    return np.array(intersections)
+
+def find_nearest_point_on_contour(point, contour):
+
+    # Validate inputs.
+    point = np.array(point)
+    msg = f'Point must have shape (2,). Got: {point.shape}'
+    assert point.shape == (2,), msg
+
+    contour = np.array(contour)
+    msg = f'Contour must have shape (N,2) where N >= 2. Got: {contour.shape}'
+    assert contour.shape[0] >= 3, msg
+    assert contour.shape[1] == 2, msg
+
+    # Find nearest point on contour.
+    dists = np.sqrt(((contour - point) ** 2).sum(axis=1))
+    index = np.argmin(dists, axis=0)
+
+    return contour[index]
+
+def is_point_in_polygon(Point, Polygon):
+    '''
+    Test if a point lies inside a polygon.
+    '''
+    # Validate inputs.
+    Point = np.array(Point)
+    msg = f'Point must have shape (2,). Got: {Point.shape}'
+    assert Point.shape == (2,), msg
+
+    Polygon = np.array(Polygon)
+    msg = f'Polygon must have shape (N,2) where N >= 3. Got: {Polygon.shape}'
+    assert Polygon.shape[0] >= 3, msg
+    assert Polygon.shape[1] == 2, msg
+
+    # Select an exterior point.
+    X_max, Y_max = Polygon.T.max(axis=1)
+    x1, y1 = np.array([2 * X_max, 2 * Y_max])
+
+    # Load the point.
+    x2, y2 = Point
+
+    # Load the polygon.
+    X3, Y3 = Polygon[:-1].T
+    X4, Y4 = Polygon[1:].T
+
+    # Test for intersection with every polygon edge.
+    #
+    # Find intersection points between a list of line segments and a contour.
+    #
+    # https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    # Retrieved: April 30, 2020.
+    D = (x1 - x2) * (Y3 - Y4) - (y1 - y2) * (X3 - X4)
+    T = (x1 - X3) * (Y3 - Y4) - (y1 - Y3) * (X3 - X4)
+    U = (x1 - x2) * (y1 - Y3) - (y1 - y2) * (x1 - X3)
+
+    T /= D
+    U /= -D
+
+    intersections = (0. <= T) & (T <= 1.) & (0. <= U) & (U <= 1.)
+
+    # Test for interiority.
+    #
+    # Test for interiority via a ray casting algorithm.
+    #
+    # https://en.wikipedia.org/wiki/Point_in_polygon
+    point_is_inside = intersections.sum() % 2 == 1
+
+    return point_is_inside
+
 class ContourGenerator:
     '''
     Generates a smooth contour for any given cell_id.
