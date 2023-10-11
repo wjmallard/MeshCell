@@ -81,7 +81,10 @@ def evenly_distribute_contour_points(X_old, Y_old):
     J = np.clip(J, 0, len(C_old) - 2)
     
     # Interpolate X and Y coordinates along the contour.
-    alpha = (C_new - C_old[J]) / (C_old[J+1] - C_old[J])
+    a = C_new - C_old[J]
+    b = C_old[J+1] - C_old[J]
+    alpha = np.divide(a, b, out=np.zeros_like(a), where=(b!=0))
+
     X_new = X_old[J] + (X_old[J+1] - X_old[J]) * alpha
     Y_new = Y_old[J] + (Y_old[J+1] - Y_old[J]) * alpha
 
