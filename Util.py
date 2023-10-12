@@ -8,6 +8,12 @@ Created on Wed May 20 23:53:08 2020
 import numpy as np
 from scipy.stats import linregress
 from skimage import measure
+import re
+
+def natural_sort(L):
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(L, key=alphanum_key)
 
 def find_cell_bbox(object_labels, cell_id):
 
