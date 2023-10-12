@@ -90,6 +90,7 @@ def process(mask_file):
     Cell_Contours = Contour.ContourGenerator(image, cell_masks)
 
     Cells = {}
+    Failed_Chains = {}
 
     chain_ids = np.unique(chain_masks)
     chain_ids = chain_ids[chain_ids > 0]
@@ -98,37 +99,39 @@ def process(mask_file):
 
         print(f' - Chain {chain_id}')
 
-        chain_contour = Chain_Contours.generate(chain_id)
-        chain_skeleton = Skeleton.generate(chain_contour)
-
-        if chain_skeleton is None:
-            print(' * Skeletonization failed. Skipping.')
-            continue
-
         cell_ids = chains_to_cells[chain_id]
 
-        for cell_id in cell_ids:
+        try:
 
-            print(f'   - Cell {cell_id}')
+            chain_contour = Chain_Contours.generate(chain_id)
+            chain_skeleton = Skeleton.generate(chain_contour)
 
-            cell_contour = Cell_Contours.generate(cell_id)
-            cell_skeleton = Skeleton.extend_skeleton(chain_skeleton, cell_contour)
-            rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(cell_contour, cell_skeleton)
+            for cell_id in cell_ids:
 
-            Cells[cell_id] = {
-                'Contour': cell_contour,
-                'Skeleton': cell_skeleton,
-                'Ribs': {
-                    'Start': rib_starts,
-                    'Top': top_intersections,
-                    'Bot': bot_intersections,
+                print(f'   - Cell {cell_id}')
+
+                cell_contour = Cell_Contours.generate(cell_id)
+                cell_skeleton = Skeleton.extend_skeleton(chain_skeleton, cell_contour)
+                rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(cell_contour, cell_skeleton)
+
+                Cells[cell_id] = {
+                    'Contour': cell_contour,
+                    'Skeleton': cell_skeleton,
+                    'Ribs': {
+                        'Start': rib_starts,
+                        'Top': top_intersections,
+                        'Bot': bot_intersections,
+                    }
                 }
-            }
+
+        except:
+            print('   - Mesh generation failed. Skipping this chain.')
+            Failed_Chains[chain_id] = cell_ids
 
     # Save contours to a .npz file.
     print('Saving contours to disk.')
     print(f' - {npz_file}')
-    np.savez(npz_file, Cells=Cells)
+    np.savez(npz_file, Cells=Cells, Failed_Chains=Failed_Chains)
 
     # Save diagnostic plot to a .png file.
     print('Saving plot to disk.')
@@ -190,9 +193,7 @@ filenames = Util.natural_sort(MASKS)
 for n, filename in enumerate(filenames):
 
     print(f'[{n+1}/{len(MASKS)}] {filename}')
-    try:
-        process(filename)
-    except:
-        print('Mesh generation failed. Skipping.')
+    process(filename)
+    print()
 
 print('Done.')
