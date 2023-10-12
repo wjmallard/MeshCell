@@ -12,6 +12,7 @@ from collections import Counter
 from matplotlib import path
 
 import Contour
+import Util
 
 # TODO: Figure out how to set the extension factor in a more principled way.
 extension_factor = 20
@@ -190,92 +191,62 @@ def build_skeleton(contour):
 
 def extend_skeleton(skeleton, contour):
 
+    INTERP_PERCENT = 1/3
+
+    # Uniformly distribute points along the skeleton.
     skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
     skeleton = np.array(skeleton).T
 
-    interior_points = [Contour.is_point_in_polygon(skeleton[i], contour)
-                       for i in range(len(skeleton))]
+    # Ensure the skeleton is ordered from left to right.
+    if skeleton[0,0] > skeleton[-1,0]:
+        skeleton = skeleton[::-1]
 
-    skeleton_cropped = np.concatenate((
+    # Make room for a new exterior point at both ends.
+    skeleton_extended = np.concatenate((
         [[np.nan, np.nan]],
-        skeleton[interior_points],
+        skeleton,
         [[np.nan, np.nan]],
     ))
 
-    if not interior_points[0]:
-        # If the left end touches the contour:
-        # - Find the index just outside the contour.
-        # - Create a line crossing the contour.
-        # - Intersect the line with the contour.
-        # - Assign that point to the left end of the cropped skeleton.
-        idx = np.where(np.diff(interior_points))[0][0]
-        cross = skeleton[idx:idx+2]
-        skeleton_cropped[0] = Contour.find_contour_intersections(cross, contour)[0]
-    else:
-        # If the left end does not touch the contour:
-        # - Find the left-most point of the skeleton.
-        # - Find the nearest point on the contour.
-        # - Assign that point to the left end of the cropped skeleton.
-        point = skeleton[0]
-        skeleton_cropped[0] = Contour.find_nearest_point_on_contour(point, contour)
+    # Calculate an extension length that guarantees a projected
+    # point will definitely lie outside of the contour.
+    extension_length = (contour.max(axis=0) - contour.min(axis=0)).max().round().astype(int)
 
-    if not interior_points[-1]:
-        # If the right end touches the contour:
-        # - Find the index just inside the contour.
-        # - Create a line crossing the contour.
-        # - Intersect the line with the contour.
-        # - Assign that point to the right end of the cropped skeleton.
-        idx = np.where(np.diff(interior_points))[0][-1]
-        cross = skeleton[idx:idx+2]
-        skeleton_cropped[-1] = Contour.find_contour_intersections(cross, contour)[0]
-    else:
-        # If the right end does not touch the contour:
-        # - Find the right-most point of the skeleton.
-        # - Find the nearest point on the contour.
-        # - Assign that point to the right end of the cropped skeleton.
-        point = skeleton[-1]
-        skeleton_cropped[-1] = Contour.find_nearest_point_on_contour(point, contour)
+    # Extract the left and right ends.
+    num_points = int(np.round(len(skeleton) * INTERP_PERCENT))
+    left_end = skeleton[:num_points]
+    right_end = skeleton[-num_points:]
 
-    # Interpolate again on the whole extended skeleton.
-    skeleton_final = Contour.evenly_distribute_contour_points(*skeleton_cropped.T)
-    skeleton_final = np.vstack(skeleton_final).T
+    # Extrapolate a point guaranteed to be outside the left end.
+    f = Util.fit_line(left_end)
+    x = left_end[0][0] - extension_length
+    y = f(x)
+    skeleton_extended[0] = (x, y)
 
-    return skeleton_final
+    # Extrapolate a point guaranteed to be outside the right end.
+    f = Util.fit_line(right_end)
+    x = right_end[-1][0] + extension_length
+    y = f(x)
+    skeleton_extended[-1] = (x, y)
 
-def extend_skeleton_(skeleton, contour):
+    # Identify all points on the skeleton inside the contour.
+    is_inside = lambda p: Contour.is_point_in_polygon(p, contour)
+    interior_points = list(map(is_inside, skeleton_extended))
 
-    skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
-    skeleton = np.array(skeleton).T
+    # Find the first and last skeleton indices inside the contour.
+    a, b = 1 + np.where(np.diff(interior_points))[0]
 
-    left_end = skeleton[:3]
-    right_end = skeleton[-3:]
+    # Trim the skeleton to include points just outside the contour.
+    skeleton_trimmed = skeleton_extended[a-1:b+1]
 
-    left_vector = left_end[1:] - left_end[:-1]
-    left_point = skeleton[1,:] - left_vector.mean(axis=0) * extension_factor
-
-    right_vector = right_end[1:] - right_end[:-1]
-    right_point = skeleton[-1,:] + right_vector.mean(axis=0) * extension_factor
-
-    skeleton_ext = np.concatenate((left_point[None,:], skeleton, right_point[None,:]))
-
-    # TODO: Only run intersection finder on the extended segments, not whole skeleton.
-    intersection = Contour.find_segment_intersection(skeleton_ext[:-1], skeleton_ext[1:], contour)
-
-    # Replace skeleton extension points with contour intersection points.
-    skeleton_trim = skeleton_ext
-    skeleton_trim[0] = intersection[0]
-    skeleton_trim[-1] = intersection[-1]
-    # TODO: Handle the "edge" case:
-    #       When a cell is flagged as hitting an edge,
-    #       there is no contour to intersect, so one or
-    #       both of the intersections comes back as NaN.
-    #       If the "keep edge cells" flag is on,
-    #       then truncate the cell perpendicularly.
-    #       If it is off, then discard the cell.
-    #       The flag should be off by default.
+    # Trim the skeleton to precisely the edge of the contour.
+    intersections = Contour.find_contour_intersections(skeleton_trimmed, contour)
+    assert len(intersections) == 2
+    skeleton_trimmed[0] = intersections[0]
+    skeleton_trimmed[-1] = intersections[1]
 
     # Interpolate again on the whole extended skeleton.
-    skeleton_final = Contour.evenly_distribute_contour_points(skeleton_trim[:,0], skeleton_trim[:,1])
-    skeleton_final = np.vstack(skeleton_final).T
+    skeleton_final = Contour.evenly_distribute_contour_points(*skeleton_trimmed.T)
+    skeleton_final = np.array(skeleton_final).T
 
     return skeleton_final

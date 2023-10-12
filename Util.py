@@ -11,6 +11,7 @@ from skimage import io
 from nd2reader import ND2Reader
 from tifffile import TiffFile
 from scipy.signal import fftconvolve
+from scipy.stats import linregress
 from skimage import measure
 
 def load_image(filename):
@@ -146,3 +147,33 @@ def find_contour_bbox(contour):
     urx, ury = contour.max(axis=0)
 
     return llx, lly, urx, ury
+
+def fit_line(line):
+    '''
+    Fit via linear regression, handling the case of near-vertical lines.
+
+    Returns the function of the fitted line.
+
+    Adapted from: https://stats.stackexchange.com/a/182893
+    '''
+    VERT_THRESHOLD = 1
+
+    X_std, Y_std = line.std(axis=0)
+
+    verticality = (Y_std / X_std) if (X_std > 0) else np.inf
+
+    if verticality < VERT_THRESHOLD:
+
+        X, Y = line.T
+        res = linregress(X, Y)
+        m = res.slope
+        b = res.intercept
+
+    else:
+
+        Y, X = line.T
+        res = linregress(X, Y)
+        m = 1 / res.slope
+        b = - res.intercept / res.slope
+
+    return lambda x: m * x + b

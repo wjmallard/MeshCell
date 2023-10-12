@@ -36,6 +36,7 @@ import numpy as np
 from skimage import io
 import matplotlib.pyplot as plt
 
+import Mask
 import Contour
 import Skeleton
 import Mesh
@@ -54,89 +55,51 @@ cell_masks = io.imread(MASKS, as_gray=True)
 # Generate chain masks.
 #
 print('Generating chain masks.')
-
-import pandas as pd
-from skimage.measure import label as label_connected
-
-def assign_cells_to_chains(cell_masks):
-    '''
-    Merge cells into chains.
-    '''
-    cell_labels = np.unique(cell_masks)
-    cell_labels = cell_labels[cell_labels > 0]
-
-    # Create a unique label for each chain.
-    chain_masks = label_connected(cell_masks > 0)
-
-    # Assign each cell to a chain.
-    chain_assignments = pd.Series(data=-1, index=cell_labels, dtype=int)
-
-    for cell_label in cell_labels:
-        chain_assignments[cell_label] = chain_masks[cell_masks == cell_label][0]
-
-    return chain_masks, chain_assignments
-
-chain_masks, chain_assignments = assign_cells_to_chains(cell_masks)
+chain_masks, chains_to_cells = Mask.assign_cells_to_chains(cell_masks)
 
 #
-# Generate chain contours and skeletons.
+# Generate contours, skeletons, and ribs.
 #
-print('Generating chain contours and skeletons.')
+print('Generating contours, skeletons, and ribs.')
 
-Contours = Contour.ContourGenerator(image, chain_masks)
+Chain_Contours = Contour.ContourGenerator(image, chain_masks)
+Cell_Contours = Contour.ContourGenerator(image, cell_masks)
+
+Cells = {}
 
 chain_ids = np.unique(chain_masks)
 chain_ids = chain_ids[chain_ids > 0]
-
-Chains = {}
 
 for chain_id in chain_ids:
 
     print(f' - Chain {chain_id}')
 
-    contour = Contours.generate(chain_id)
-    skeleton = Skeleton.generate(contour)
-    if skeleton is None:
+    chain_contour = Chain_Contours.generate(chain_id)
+    chain_skeleton = Skeleton.generate(chain_contour)
+
+    if chain_skeleton is None:
         print(' * Skeletonization failed. Skipping.')
         continue
 
-    Chains[chain_id] = {
-        'Contour': contour,
-        'Skeleton': skeleton,
-    }
+    cell_ids = chains_to_cells[chain_id]
 
-#
-# Generate cell contours.
-#
-print('Generating cell contours.')
+    for cell_id in cell_ids:
 
-Contours = Contour.ContourGenerator(image, cell_masks)
+        print(f'   - Cell {cell_id}')
 
-cell_ids = np.unique(cell_masks)
-cell_ids = cell_ids[cell_ids > 0]
+        cell_contour = Cell_Contours.generate(cell_id)
+        cell_skeleton = Skeleton.extend_skeleton(chain_skeleton, cell_contour)
+        rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(cell_contour, cell_skeleton)
 
-Cells = {}
-
-for cell_id in cell_ids:
-
-    print(f' - Cell {cell_id}')
-
-    contour = Contours.generate(cell_id)
-    skeleton = Skeleton.generate(contour)
-    if skeleton is None:
-        print(' * Skeletonization failed. Skipping.')
-        continue
-    rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(contour, skeleton)
-
-    Cells[cell_id] = {
-        'Contour': contour,
-        'Skeleton': skeleton,
-        'Ribs': {
-            'Start': rib_starts,
-            'Top': top_intersections,
-            'Bot': bot_intersections,
+        Cells[cell_id] = {
+            'Contour': cell_contour,
+            'Skeleton': cell_skeleton,
+            'Ribs': {
+                'Start': rib_starts,
+                'Top': top_intersections,
+                'Bot': bot_intersections,
+            }
         }
-    }
 
 # Save contours to a .npz file.
 outfile = basefile + '.contours'
