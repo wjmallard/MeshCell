@@ -44,6 +44,13 @@ def process(mask_file):
     base_file = mask_file[:-len(MASK_FILE_SUFFIX)]
     image_file = f'{base_file}.tif'
 
+    npz_file = f'{base_file}.contours.npz'
+    png_file = f'{base_file}.png'
+
+    if Path(npz_file).exists():
+        print(f' - Already processed. Skipping.')
+        return
+
     if not Path(mask_file).exists():
         print(' - Mask file does not exist. Skipping.')
         return
@@ -119,16 +126,14 @@ def process(mask_file):
             }
 
     # Save contours to a .npz file.
-    outfile = base_file + '.contours'
     print('Saving contours to disk.')
-    print(f' - {outfile}.npz')
-    np.savez(outfile, Cells=Cells)
+    print(f' - {npz_file}')
+    np.savez(npz_file, Cells=Cells)
 
     # Save diagnostic plot to a .png file.
-    outfile = base_file + '.png'
     print('Saving plot to disk.')
-    print(f' - {outfile}')
-    save_diagnostic_plot(outfile, image, Cells)
+    print(f' - {png_file}')
+    save_diagnostic_plot(png_file, image, Cells)
 
 def save_diagnostic_plot(outfile, image, Cells):
 
