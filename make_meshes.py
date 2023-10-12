@@ -190,6 +190,9 @@ filenames = Util.natural_sort(MASKS)
 for n, filename in enumerate(filenames):
 
     print(f'[{n+1}/{len(MASKS)}] {filename}')
-    process(filename)
+    try:
+        process(filename)
+    except:
+        print('Mesh generation failed. Skipping.')
 
 print('Done.')
