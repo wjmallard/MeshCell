@@ -5,28 +5,28 @@
 @author Shicong Xie (xies)
 @date April 2020
 """
+MASK_FILE_SUFFIX = '.masks_edited.tif'
 #
 # Parse command line arguments.
 #
 import sys
 from pathlib import Path
 try:
-    IMAGE = sys.argv[1]
+    MASKS = sys.argv[1]
 
-    assert IMAGE.endswith('.tif')
-    basefile = IMAGE[:-len('.tif')]
+    assert MASKS.endswith(MASK_FILE_SUFFIX)
+    basefile = MASKS[:-len(MASK_FILE_SUFFIX)]
 
-    MASKS = f'{basefile}.masks_edited.tif'
+    IMAGE = f'{basefile}.tif'
 
     assert Path(IMAGE).exists()
     assert Path(MASKS).exists()
 
 except:
     script = sys.argv[0].split('/')[-1]
-    print(f'Usage: {script} IMAGE.tif', file=sys.stderr)
+    print(f'Usage: {script} MASKS{MASK_FILE_SUFFIX}', file=sys.stderr)
     print()
-    print('where IMAGE ends with .tif, and is accompanied by:')
-    print(' - IMAGE.masks_edited.tif : curated cell masks')
+    print('MASKS must also be accompanied by the original .tif file the masks were derived from.')
     sys.exit(1)
 
 #
