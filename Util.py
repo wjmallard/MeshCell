@@ -32,6 +32,26 @@ def find_contour_bbox(contour):
 
     return llx, lly, urx, ury
 
+def find_square_contour_bbox(contour, pad=5):
+
+    llx, lly = contour.min(axis=0)
+    urx, ury = contour.max(axis=0)
+
+    cx = np.mean((llx, urx))
+    cy = np.mean((lly, ury))
+
+    w = urx - llx
+    h = ury - lly
+
+    size = np.max((w, h)) + pad
+
+    llx = cx - size // 2
+    urx = cx + size // 2
+    lly = cy - size // 2
+    ury = cy + size // 2
+
+    return llx, lly, urx, ury
+
 def fit_line(line):
     '''
     Fit via linear regression, handling the case of near-vertical lines.
