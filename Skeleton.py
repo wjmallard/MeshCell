@@ -191,7 +191,7 @@ def build_skeleton(contour):
 
 def extend_skeleton(skeleton, contour):
 
-    INTERP_PERCENT = 1/3
+    NUM_INTERP_POINTS = 10
 
     # Uniformly distribute points along the skeleton.
     skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
@@ -212,18 +212,15 @@ def extend_skeleton(skeleton, contour):
     # point will definitely lie outside of the contour.
     extension_length = (contour.max(axis=0) - contour.min(axis=0)).max().round().astype(int)
 
-    # Extract the left and right ends.
-    num_points = int(np.round(len(skeleton) * INTERP_PERCENT))
-    left_end = skeleton[:num_points]
-    right_end = skeleton[-num_points:]
-
     # Extrapolate a point guaranteed to be outside the left end.
+    left_end = skeleton[:NUM_INTERP_POINTS]
     f = Util.fit_line(left_end)
     x = left_end[0][0] - extension_length
     y = f(x)
     skeleton_extended[0] = (x, y)
 
     # Extrapolate a point guaranteed to be outside the right end.
+    right_end = skeleton[-NUM_INTERP_POINTS:]
     f = Util.fit_line(right_end)
     x = right_end[-1][0] + extension_length
     y = f(x)
