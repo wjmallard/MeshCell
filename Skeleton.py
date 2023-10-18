@@ -6,21 +6,22 @@
 @date April 2020
 """
 import numpy as np
+import networkx as nx
 from scipy.spatial import Voronoi
+from scipy.spatial.distance import pdist
+from scipy.spatial.distance import squareform
 from collections import defaultdict
 
 import Contour
 import Util
 
+MAX_BRANCH_ANGLE = 20
 # TODO: Figure out how to set the extension factor in a more principled way.
 extension_factor = 20
 
 def generate(contour):
-    try:
-        skel = build_skeleton(contour)
-        skel = extend_skeleton(skel, contour)
-    except IndexError:
-        return None
+    skel = build_skeleton(contour)
+    skel = extend_skeleton(skel, contour)
     return skel
 
 def build_skeleton(contour):
@@ -32,11 +33,11 @@ def build_skeleton(contour):
     # Extract all branches.
     Branches = extract_branches(E)
 
-    # Find the longest branch. Make that the skeleton.
-    skel_indices = sorted(Branches, key=len)[-1]
+    # Merge collinear branches.
+    Branches = merge_collinear_branches(V, Branches)
 
-    # Convert to skeleton.
-    skeleton = V[skel_indices]
+    # Select longest branch.
+    skeleton = select_longest_branch(V, Branches)
 
     return skeleton
 
@@ -127,6 +128,181 @@ def extract_branches(E):
             vertices_to_walk.append([next_v, n])
 
     return Branches
+
+def merge_collinear_branches(V, Branches):
+
+    #
+    # 1. Generate matrix of adjacent collinear branches.
+    #
+
+    # Generate branch collinearity matrix.
+    Angles = build_angles_matrix(V, Branches)
+    Collinear = Angles <= MAX_BRANCH_ANGLE
+
+    # Generate branch connectivity matrix.
+    Adjacent = build_adjacency_matrix(Branches)
+
+    # Intersect collinearity and connectivity.
+    AC = Adjacent & Collinear
+
+    #
+    # 2. Generate matrix of connected components.
+    #
+
+    # Find connected components.
+    N = len(AC)
+    Connected = np.linalg.matrix_power(AC, N)
+
+    #
+    # 3. Extract connected components from matrix.
+    #
+
+    # Merge redundant rows.
+    X1 = np.unique(Connected, axis=0)
+
+    # Remove singletons.
+    X2 = X1[X1.sum(axis=1) > 1]
+
+    # Extract lists of branch labels.
+    X3 = [np.where(row)[0] for row in X2]
+
+    # Extract lists of branch nodes.
+    X4 = [[Branches[i] for i in branch_ids] for branch_ids in X3]
+
+    #
+    # 4. Stitch together branch segments.
+    #
+    Collinear_Branches = list(map(stitch_branch_segments, X4))
+
+    return Collinear_Branches
+
+def build_adjacency_matrix(Branches):
+
+    # NOTE: We use numerical branch order
+    #       as the label for each branch.
+
+    # Build a branch adjacency list for the
+    # vertices at the end of every branch.
+    Forks = defaultdict(list)
+
+    for e, Branch in enumerate(Branches):
+
+        u = Branch[0]
+        v = Branch[-1]
+
+        Forks[u].append(e)
+        Forks[v].append(e)
+
+    # Remove all leaf vertices.
+    Forks = {v: edges
+             for v, edges in Forks.items()
+             if len(edges) > 1}
+
+    # Convert this into an adjacency matrix.
+    N = len(Branches)
+    Adjacency = np.zeros((N,N), dtype=bool)
+
+    # For each fork vertex:
+    for _, edges in Forks.items():
+
+        # Enumerate all pairs of branches
+        # that meet at this vertex.
+        coords = find_all_pairs(edges, inclusive=True)
+
+        # Mark their adjacency.
+        for u, v in coords:
+            Adjacency[u,v] = True
+            Adjacency[v,u] = True
+
+    return Adjacency
+
+def find_all_pairs(L, inclusive=False):
+
+    n = 1 if inclusive else 0
+
+    pairs = [(L[i], L[j])
+             for j in range(len(L))
+             for i in range(j + n)]
+
+    return pairs
+
+def build_angles_matrix(V, Branches):
+
+    # NOTE: We use numerical branch order
+    #       as the label for each branch.
+
+    # Map branches to list of coordinates.
+    XA = np.array([V[B[0]] for B in Branches])
+    XB = np.array([V[B[1]] for B in Branches])
+
+    # Convert each edge to a vector.
+    X = XA - XB
+
+    # Find the angle between every pair of vectors.
+    CD = pdist(X, metric='cosine')
+    CS = np.abs(1 - CD)
+    Theta = np.rad2deg(np.arccos(CS))
+    Angles = squareform(Theta)
+
+    return Angles
+
+def find_line_angle(L1, L2):
+    '''
+    Find the angle between two lines, in degrees.
+    '''
+    AB = L1[0] - L2[0]
+    CD = L1[1] - L2[1]
+
+    # If either line is actually a point,
+    # return an angle of zero degrees.
+    if (AB == 0).all() or (CD == 0).all():
+        return 0.
+
+    AB /= np.linalg.norm(AB)
+    CD /= np.linalg.norm(CD)
+
+    abs_dot = np.abs(np.dot(AB, CD))
+    theta = np.arccos(abs_dot)
+
+    return np.rad2deg(theta)
+
+def stitch_branch_segments(segments):
+    '''
+    Stitch a list of branch nodes into a single branch.
+
+    Takes a list of lists.
+    Each sub-list is a list of sequential nodes in a branch segment.
+    Does not require the segments to be in order or in any particular
+    orientation relative to one another.
+
+    However, the branch segments:
+     - should all be connected
+     - should not form a branching structure
+    '''
+    G = nx.Graph()
+
+    for nodes in segments:
+        edges = zip(nodes, nodes[1:])
+        G.add_edges_from(edges)
+
+    start = min(v for v in G if len(G[v]) == 1)
+    branch = list(nx.dfs_preorder_nodes(G, start))
+
+    return branch
+
+def select_longest_branch(V, Branches):
+
+    Coords = [V[nodes] for nodes in Branches]
+    Branch = sorted(Coords, key=calc_branch_length)[-1]
+
+    return Branch
+
+def calc_branch_length(Coords):
+
+    vectors = np.diff(Coords, axis=0)
+    lengths = np.linalg.norm(vectors, axis=1)
+
+    return lengths.sum()
 
 def extend_skeleton(skeleton, contour):
 
