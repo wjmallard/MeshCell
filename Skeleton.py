@@ -25,6 +25,23 @@ def generate(contour):
 
 def build_skeleton(contour):
 
+    # Build a Voronoi diagram.
+    # Extract the tree from its interior.
+    V, E = get_voronoi_interior(contour)
+
+    # Extract all branches.
+    Branches = extract_branches(E)
+
+    # Find the longest branch. Make that the skeleton.
+    skel_indices = sorted(Branches, key=len)[-1]
+
+    # Convert to skeleton.
+    skeleton = V[skel_indices]
+
+    return skeleton
+
+def get_voronoi_interior(contour):
+
     # Construct a voronoi diagram.
     # Extract its vertices and edges.
     vor = Voronoi(contour)
@@ -39,15 +56,7 @@ def build_skeleton(contour):
          if Contour.is_point_in_polygon(V[e[0]], contour) and
             Contour.is_point_in_polygon(V[e[1]], contour)]
 
-    # Extract all branches from the remaining tree.
-    Branches = extract_branches(E)
-
-    # Find the longest branch. Make that the skeleton.
-    skel_indices = sorted(Branches, key=len)[-1]
-
-    skeleton = V[skel_indices]
-
-    return skeleton
+    return V, E
 
 def extract_branches(E):
 
