@@ -46,13 +46,7 @@ def get_cell_boundary_coords(masks, cell_id):
 
 def select_longest_contour(contours):
 
-    longest = []
-
-    for contour in contours:
-        if len(contour) > len(longest):
-            longest = contour
-
-    return longest
+    return sorted(contours, key=len)[-1]
 
 def evenly_distribute_contour_points(X_old, Y_old):
 
