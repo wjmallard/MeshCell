@@ -29,14 +29,11 @@ def build_skeleton(contour):
     # Extract the tree from its interior.
     V, E = get_voronoi_interior(contour)
 
-    # Extract all branches.
-    Branches = extract_branches(E)
+    # Find longest path through graph.
+    longest_path = find_longest_topological_path(E)
 
-    # Merge collinear branches.
-    Branches = merge_collinear_branches(V, Branches)
-
-    # Select longest branch.
-    skeleton = select_longest_branch(V, Branches)
+    # Extract coordinates.
+    skeleton = V[longest_path]
 
     return skeleton
 
@@ -289,19 +286,30 @@ def stitch_branch_segments(segments):
 
     return branch
 
-def select_longest_branch(V, Branches):
+def find_longest_topological_path(E):
 
-    Coords = [V[nodes] for nodes in Branches]
-    Branch = sorted(Coords, key=calc_branch_length)[-1]
+    G = nx.Graph(E)
 
-    return Branch
+    # Pick an arbitrary start node, v_init.
+    v_init = min(G.nodes)
 
-def calc_branch_length(Coords):
+    # Run BFS starting from v_init,
+    # and save the node farthest from it.
+    # This is the end of the longest path.
+    T1 = nx.bfs_tree(G, v_init)
+    v_end = list(T1.nodes)[-1]
 
-    vectors = np.diff(Coords, axis=0)
-    lengths = np.linalg.norm(vectors, axis=1)
+    # Run BFS starting from v_end,
+    # and save the node farthest from it.
+    # This is the start of the longest path.
+    T2 = nx.bfs_tree(G, v_end)
+    v_start = list(T2.nodes)[-1]
 
-    return lengths.sum()
+    # Find the shortest path from v_start to v_end.
+    # This is the longest path in the graph.
+    Longest_Path = nx.shortest_path(G, v_start, v_end)
+
+    return Longest_Path
 
 def extend_skeleton(skeleton, contour):
 
