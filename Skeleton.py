@@ -30,7 +30,7 @@ def build_skeleton(contour):
     V, E = get_voronoi_interior(contour)
 
     # Find longest path through graph.
-    longest_path = find_longest_topological_path(E)
+    longest_path = find_longest_path(V, E)
 
     # Extract coordinates.
     skeleton = V[longest_path]
@@ -286,24 +286,40 @@ def stitch_branch_segments(segments):
 
     return branch
 
-def find_longest_topological_path(E):
+def find_longest_path(V, E):
 
     G = nx.Graph(E)
 
     # Pick an arbitrary start node, v_init.
     v_init = min(G.nodes)
 
-    # Run BFS starting from v_init,
-    # and save the node farthest from it.
-    # This is the end of the longest path.
-    T1 = nx.bfs_tree(G, v_init)
-    v_end = list(T1.nodes)[-1]
+    # Run BFS starting from v_init.
+    # Annotate each node with its
+    # cumulative Euclidean distance
+    # from v_init along the search path.
+    G.nodes[v_init]['dist'] = 0.
 
-    # Run BFS starting from v_end,
-    # and save the node farthest from it.
-    # This is the start of the longest path.
-    T2 = nx.bfs_tree(G, v_end)
-    v_start = list(T2.nodes)[-1]
+    for v, u in nx.bfs_predecessors(G, v_init):
+        d = np.linalg.norm(V[u] - V[v])
+        G.nodes[v]['dist'] = G.nodes[u]['dist'] + d
+
+    # The node with the largest total distance
+    # is the end of the longest path.
+    v_end, _ = max(G.nodes(data=True), key=lambda x: x[1]['dist'])
+
+    # Run BFS starting from v_end.
+    # Annotate each node with its
+    # cumulative Euclidean distance
+    # from v_end along the search path.
+    G.nodes[v_end]['dist'] = 0.
+
+    for v, u in nx.bfs_predecessors(G, v_end):
+        d = np.linalg.norm(V[u] - V[v])
+        G.nodes[v]['dist'] = G.nodes[u]['dist'] + d
+
+    # The node with the largest total distance
+    # is the start of the longest path.
+    v_start, _ = max(G.nodes(data=True), key=lambda x: x[1]['dist'])
 
     # Find the shortest path from v_start to v_end.
     # This is the longest path in the graph.
