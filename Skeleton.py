@@ -16,8 +16,7 @@ import Contour
 import Util
 
 MAX_BRANCH_ANGLE = 20
-# TODO: Figure out how to set the extension factor in a more principled way.
-extension_factor = 20
+NUM_INTERP_POINTS = 10
 
 def generate(contour):
     skel = build_skeleton(contour)
@@ -305,8 +304,6 @@ def calc_branch_length(Coords):
     return lengths.sum()
 
 def extend_skeleton(skeleton, contour):
-
-    NUM_INTERP_POINTS = 10
 
     # Uniformly distribute points along the skeleton.
     skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
