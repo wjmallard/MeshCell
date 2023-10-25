@@ -111,7 +111,8 @@ def process(mask_file):
                 print(f'   - Cell {cell_id}')
 
                 cell_contour = Cell_Contours.generate(cell_id)
-                cell_skeleton = Skeleton.crop_skeleton(chain_skeleton, cell_contour)
+                cell_skeleton = Skeleton.extend_skeleton(chain_skeleton, cell_contour)
+                cell_skeleton = Skeleton.crop_skeleton(cell_skeleton, cell_contour)
                 rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(cell_contour, cell_skeleton)
 
                 Cells[cell_id] = {
