@@ -22,7 +22,9 @@ def generate(contour):
 
     skel = build_skeleton(contour)
     skel = smooth_skeleton(skel)
+    skel = extend_skeleton(skel, contour)
     skel = crop_skeleton(skel, contour)
+    skel = smooth_skeleton(skel)
 
     return skel
 
@@ -338,53 +340,35 @@ def smooth_skeleton(skeleton):
 
     return skeleton
 
-def is_fully_spanning(skeleton, contour):
-    '''
-    Check if the skeleton fully extends through the contour,
-    crossing it exactly twice.
-    '''
-    # Identify all points on the skeleton inside the contour.
-    is_inside = lambda p: Contour.is_point_in_polygon(p, contour)
-    interior_points = list(map(is_inside, skeleton))
-
-    if sum(interior_points) == 0:
-        print('Warning: Skeleton is not contained within contour.')
-        return False
-
-    # Find skeleton indices adjacent to contour crossings.
-    crossings = 1 + np.where(np.diff(interior_points))[0]
-
-    return len(crossings) == 2
-
 def extend_skeleton(skeleton, contour):
 
     # Calculate an extension length that guarantees a projected
     # point will definitely lie outside of the contour.
     extension_length = (contour.max(axis=0) - contour.min(axis=0)).max().round().astype(int)
 
-    # Ensure the skeleton is ordered from left to right.
-    if skeleton[0,0] > skeleton[-1,0]:
-        skeleton = np.flip(skeleton, 0)
-
-    # If the left end is inside the contour, extend it.
+    # If the "left" end is inside the contour, extend it.
     if Contour.is_point_in_polygon(skeleton[0], contour):
 
         # Extrapolate a point guaranteed to be outside the left end.
         left_end = skeleton[:NUM_INTERP_POINTS]
         f = Util.fit_line(left_end)
-        x = left_end[0][0] - extension_length
+        dx, _ = left_end[0] - left_end[-1]
+        x0, _ = left_end[0]
+        x = x0 + np.sign(dx) * extension_length
         y = f(x)
 
         # Add this new exterior point to the left end.
         skeleton = np.insert(skeleton, 0, [[x, y]], axis=0)
 
-    # If the right end end is inside the contour, extend it.
+    # If the "right" end end is inside the contour, extend it.
     if Contour.is_point_in_polygon(skeleton[-1], contour):
 
         # Extrapolate a point guaranteed to be outside the right end.
-        right_end = skeleton[-NUM_INTERP_POINTS:]
+        right_end = skeleton[-NUM_INTERP_POINTS:][::-1]
         f = Util.fit_line(right_end)
-        x = right_end[-1][0] + extension_length
+        dx, _ = right_end[0] - right_end[-1]
+        x0, _ = right_end[0]
+        x = x0 + np.sign(dx) * extension_length
         y = f(x)
 
         # Add this new exterior point to the right end.
@@ -393,10 +377,6 @@ def extend_skeleton(skeleton, contour):
     return skeleton
 
 def crop_skeleton(skeleton, contour):
-
-    # Extend skeleton beyond the edges of the contour.
-    if not is_fully_spanning(skeleton, contour):
-        skeleton = extend_skeleton(skeleton, contour)
 
     # Identify all points on the skeleton inside the contour.
     is_inside = lambda p: Contour.is_point_in_polygon(p, contour)
@@ -413,8 +393,5 @@ def crop_skeleton(skeleton, contour):
     assert len(intersections) == 2
     skeleton[0] = intersections[0]
     skeleton[-1] = intersections[1]
-
-    # Uniformly distribute points along the skeleton.
-    skel = smooth_skeleton(skel)
 
     return skeleton
