@@ -40,26 +40,31 @@ def get_cell_boundary_coords(masks, cell_id):
     if (C[0] != C[-1]).any():
         C = np.vstack((C, C[0]))
 
-    Y, X = C.T
+    # Flip coordinates from (y,x) to (x,y).
+    C = np.flip(C, 1)
 
-    return X, Y
+    return C
 
 def select_longest_contour(contours):
 
     return sorted(contours, key=len)[-1]
 
-def evenly_distribute_contour_points(X_old, Y_old):
+def evenly_distribute_contour_points(XY_old):
+
+    assert XY_old.shape[1] == 2
+    assert XY_old.shape[0] > 1
 
     # Compute old coordinates along the contour with uneven spacing.
-    dx = X_old[1:] - X_old[:-1]
-    dy = Y_old[1:] - Y_old[:-1]
-    C_old = np.cumsum(np.sqrt(dx**2 + dy**2))
-    C_old = np.concatenate(([0], C_old))
+    dxy = np.diff(XY_old, axis=0)
+    dC = np.linalg.norm(dxy, axis=1)
+    C_old = np.cumsum(dC)
+    C_old = np.insert(C_old, 0, 0)
 
     # Create new coordinates along the contour with even 1-pixel spacing.
     C_length = C_old[-1]
-    C_new = np.linspace(0, C_length, int(np.round(C_length)))
-    
+    C_points = int(np.round(C_length))
+    C_new = np.linspace(0, C_length, C_points)
+
     # Find the distance between each new (evenly spaced) anchor point
     # and the next-smallest old (unevenly spaced) anchor point.
     anchor_distance = C_new[None,:] - C_old[:,None]
@@ -79,10 +84,9 @@ def evenly_distribute_contour_points(X_old, Y_old):
     b = C_old[J+1] - C_old[J]
     alpha = np.divide(a, b, out=np.zeros_like(a), where=(b!=0))
 
-    X_new = X_old[J] + (X_old[J+1] - X_old[J]) * alpha
-    Y_new = Y_old[J] + (Y_old[J+1] - Y_old[J]) * alpha
+    XY_new = XY_old[J] + (XY_old[J+1] - XY_old[J]) * alpha[:,None]
 
-    return X_new, Y_new
+    return XY_new
 
 def find_segment_intersection(L1, L2, C):
     '''
@@ -275,8 +279,7 @@ class ContourGenerator:
         
         # Get the pixel coordinates of current cell's boundary,
         # returns X and Y that wraps around contour (no break b/w end and beginning)
-        X, Y = get_cell_boundary_coords(self.masks, cell_id)
-        X_old, Y_old = X, Y
+        XY_old = get_cell_boundary_coords(self.masks, cell_id)
         
         for i in range(max_iter):
             # Interpolate along curve to obtain evenly spaced spline anchors.
@@ -287,18 +290,20 @@ class ContourGenerator:
             #
             # NOTE: Assumes X-Y coordinates are sorted along the contour.
         
-            X_new, Y_new = evenly_distribute_contour_points(X_old, Y_old)
+            XY_new = evenly_distribute_contour_points(XY_old)
             
             # Update the anchor positions using the image gradient (to maximize the
             # alignment of the contour with the image maxima)
             # 
             # Interpolate the smoothed image-forces at the current anchor points.
+            X_new, Y_new = XY_new.T
             Fx_new = self.Fx_smoothed.ev(Y_new, X_new)
             Fy_new = self.Fy_smoothed.ev(Y_new, X_new)
             
             X_old = X_new + step_size * Fx_new
             Y_old = Y_new + step_size * Fy_new
-        
+            XY_old = np.vstack((X_old, Y_old)).T
+
         contour = np.vstack((X_old, Y_old)).T
 
         return contour

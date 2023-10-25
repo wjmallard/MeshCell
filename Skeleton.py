@@ -335,8 +335,7 @@ def find_longest_path(V, E):
 def smooth_skeleton(skeleton):
 
     # Uniformly distribute points along the skeleton.
-    skeleton = Contour.evenly_distribute_contour_points(*skeleton.T)
-    skeleton = np.array(skeleton).T
+    skeleton = Contour.evenly_distribute_contour_points(skeleton)
 
     return skeleton
 
