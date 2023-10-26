@@ -15,8 +15,9 @@ from collections import defaultdict
 import Contour
 import Util
 
-MAX_BRANCH_ANGLE = 20
-NUM_INTERP_POINTS = 10
+END_TRIMMING_DIST = 20  # pixels
+MAX_BRANCH_ANGLE = 30  # degrees
+NUM_INTERP_POINTS = 10  # pixels
 
 def generate(contour):
 
@@ -39,6 +40,9 @@ def build_skeleton(contour):
 
     # Extract coordinates.
     skeleton = V[longest_path]
+
+    # Trim bent ends.
+    skeleton = trim_bent_ends(skeleton)
 
     return skeleton
 
@@ -290,6 +294,45 @@ def stitch_branch_segments(segments):
     branch = list(nx.dfs_preorder_nodes(G, start))
 
     return branch
+
+def trim_bent_ends(skeleton):
+
+    skeleton = trim_bent_end_at_front(skeleton)
+    skeleton = skeleton[::-1]
+    skeleton = trim_bent_end_at_front(skeleton)
+    skeleton = skeleton[::-1]
+
+    return skeleton
+
+def trim_bent_end_at_front(skeleton):
+
+    # Isolate vertices near the end of the skeleton.
+    # Use the distance threshold specified above.
+    dist_from_end = np.linalg.norm(skeleton[0] - skeleton, axis=1)
+    close_to_end = dist_from_end < END_TRIMMING_DIST
+    last_to_keep = np.where(np.diff(close_to_end))[0][0]
+
+    skel_end = skeleton[:last_to_keep + 1]
+
+    # Calculate the bending angle at each vertex.
+    #
+    # For each node, compute the angle between the two adjacent
+    # vectors, in degrees. Leave the first and last values as 0.
+    L = len(skel_end)
+    angles = np.zeros(L, dtype=float)
+
+    for a, b, c in zip(range(0,L), range(1,L), range(2,L)):
+        angles[b] = find_line_angle(skel_end[[a,b]], skel_end[[b,c]])
+
+    # Identify all nodes where the angle exceeds the
+    # angle threshold specified above. Select the last one,
+    # and trim all points before it from the skeleton.
+    bent_vertices = np.where(angles > MAX_BRANCH_ANGLE)[0]
+    new_start = bent_vertices[-1] if bent_vertices.size > 0 else 0
+
+    skeleton = skeleton[new_start:]
+
+    return skeleton
 
 def find_longest_path(V, E):
 
