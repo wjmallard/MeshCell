@@ -16,11 +16,11 @@ step_size = 0.1
 def get_cell_boundary_coords(masks, cell_id):
     '''
     Find the boundary coordinates of a particular cell.
-    
+
     Arguments:
         masks - int matrix; labels which object each pixel belongs to
         cell_id - specifies which object to find the boundary coords of
-    
+
     Returns:
         X, Y - coordinates of the cell's boundary,
                ordered counter clockwise around the contour
@@ -69,7 +69,7 @@ def evenly_distribute_contour_points(XY_old):
     # and the next-smallest old (unevenly spaced) anchor point.
     anchor_distance = C_new[None,:] - C_old[:,None]
     anchor_distance[anchor_distance < 0] = np.inf
-    
+
     # For each new anchor point,
     # find the index of the old anchor point immediately to its left.
     J = np.argmin(anchor_distance, axis=0)
@@ -78,7 +78,7 @@ def evenly_distribute_contour_points(XY_old):
     # element of the old contour.
     # (The final old anchor point cannot be left of any new anchor point.)
     J = np.clip(J, 0, len(C_old) - 2)
-    
+
     # Interpolate X and Y coordinates along the contour.
     a = C_new - C_old[J]
     b = C_old[J+1] - C_old[J]
@@ -188,24 +188,6 @@ def find_contour_intersections(L, C):
 
     return np.array(intersections)
 
-def find_nearest_point_on_contour(point, contour):
-
-    # Validate inputs.
-    point = np.array(point)
-    msg = f'Point must have shape (2,). Got: {point.shape}'
-    assert point.shape == (2,), msg
-
-    contour = np.array(contour)
-    msg = f'Contour must have shape (N,2) where N >= 2. Got: {contour.shape}'
-    assert contour.shape[0] >= 3, msg
-    assert contour.shape[1] == 2, msg
-
-    # Find nearest point on contour.
-    dists = np.sqrt(((contour - point) ** 2).sum(axis=1))
-    index = np.argmin(dists, axis=0)
-
-    return contour[index]
-
 def is_point_in_polygon(Point, Polygon):
     '''
     Test if a point lies inside a polygon.
@@ -266,21 +248,21 @@ class ContourGenerator:
         # Compute gradient of smoothed images.
         Fx = sobel_v(image)
         Fy = sobel_h(image)
-        
+
         # Compute smoothed image force components.
         Sy, Sx = image.shape
         x_mesh = np.arange(Sx)
         y_mesh = np.arange(Sy)
-        
+
         self.Fx_smoothed = RectBivariateSpline(y_mesh, x_mesh, Fx)
         self.Fy_smoothed = RectBivariateSpline(y_mesh, x_mesh, Fy)
 
     def generate(self, cell_id):
-        
+
         # Get the pixel coordinates of current cell's boundary,
         # returns X and Y that wraps around contour (no break b/w end and beginning)
         XY_old = get_cell_boundary_coords(self.masks, cell_id)
-        
+
         for i in range(max_iter):
             # Interpolate along curve to obtain evenly spaced spline anchors.
             #
@@ -289,17 +271,17 @@ class ContourGenerator:
             # C -- 1D path coordinate along the contour
             #
             # NOTE: Assumes X-Y coordinates are sorted along the contour.
-        
+
             XY_new = evenly_distribute_contour_points(XY_old)
-            
+
             # Update the anchor positions using the image gradient (to maximize the
             # alignment of the contour with the image maxima)
-            # 
+            #
             # Interpolate the smoothed image-forces at the current anchor points.
             X_new, Y_new = XY_new.T
             Fx_new = self.Fx_smoothed.ev(Y_new, X_new)
             Fy_new = self.Fy_smoothed.ev(Y_new, X_new)
-            
+
             X_old = X_new + step_size * Fx_new
             Y_old = Y_new + step_size * Fy_new
             XY_old = np.vstack((X_old, Y_old)).T
