@@ -14,7 +14,7 @@ def natural_sort(L):
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
     return sorted(L, key=alphanum_key)
 
-def find_cell_bbox(object_labels, cell_id):
+def find_mask_bbox(object_labels, cell_id):
 
     cell = (object_labels == cell_id).astype(np.uint8)
     props = measure.regionprops(cell)
@@ -31,7 +31,7 @@ def find_contour_bbox(contour):
 
     return llx, lly, urx, ury
 
-def find_square_contour_bbox(contour, pad=5):
+def find_contour_bbox_square(contour, pad=5):
 
     llx, lly = contour.min(axis=0)
     urx, ury = contour.max(axis=0)
