@@ -8,12 +8,9 @@
 import numpy as np
 import networkx as nx
 from scipy.spatial import Voronoi
-from scipy.spatial.distance import pdist
-from scipy.spatial.distance import squareform
-from collections import defaultdict
+from scipy.stats import linregress
 
 import Contour
-import Util
 
 END_TRIMMING_DIST = 20  # pixels
 MAX_BRANCH_ANGLE = 30  # degrees
@@ -64,26 +61,6 @@ def get_voronoi_interior(contour):
 
     return V, E
 
-def find_line_angle(L1, L2):
-    '''
-    Find the angle between two lines, in degrees.
-    '''
-    AB = L1[0] - L2[0]
-    CD = L1[1] - L2[1]
-
-    # If either line is actually a point,
-    # return an angle of zero degrees.
-    if (AB == 0).all() or (CD == 0).all():
-        return 0.
-
-    AB /= np.linalg.norm(AB)
-    CD /= np.linalg.norm(CD)
-
-    abs_dot = np.abs(np.dot(AB, CD))
-    theta = np.arccos(abs_dot)
-
-    return np.rad2deg(theta)
-
 def trim_bent_ends(skeleton):
 
     skeleton = trim_bent_end_at_front(skeleton)
@@ -122,6 +99,26 @@ def trim_bent_end_at_front(skeleton):
     skeleton = skeleton[new_start:]
 
     return skeleton
+
+def find_line_angle(L1, L2):
+    '''
+    Find the angle between two lines, in degrees.
+    '''
+    AB = L1[0] - L2[0]
+    CD = L1[1] - L2[1]
+
+    # If either line is actually a point,
+    # return an angle of zero degrees.
+    if (AB == 0).all() or (CD == 0).all():
+        return 0.
+
+    AB /= np.linalg.norm(AB)
+    CD /= np.linalg.norm(CD)
+
+    abs_dot = np.abs(np.dot(AB, CD))
+    theta = np.arccos(abs_dot)
+
+    return np.rad2deg(theta)
 
 def find_longest_path(V, E):
 
@@ -182,7 +179,7 @@ def extend_skeleton(skeleton, contour):
 
         # Extrapolate a point guaranteed to be outside the left end.
         left_end = skeleton[:NUM_INTERP_POINTS][::-1]
-        P_ext = Util.extend_line(left_end, extension_length)
+        P_ext = extend_line(left_end, extension_length)
 
         # Add this new exterior point to the left end.
         skeleton = np.insert(skeleton, 0, [P_ext], axis=0)
@@ -192,12 +189,60 @@ def extend_skeleton(skeleton, contour):
 
         # Extrapolate a point guaranteed to be outside the right end.
         right_end = skeleton[-NUM_INTERP_POINTS:]
-        P_ext = Util.extend_line(right_end, extension_length)
+        P_ext = extend_line(right_end, extension_length)
 
         # Add this new exterior point to the right end.
         skeleton = np.append(skeleton, [P_ext], axis=0)
 
     return skeleton
+
+def extend_line(line, ext_len):
+    '''
+    Extend a line by projecting a point outward from its end.
+
+    Fit via linear regression, handling the case of near-vertical lines.
+
+    Returns a single point projected outward from the line's end.
+
+    Adapted from: https://stats.stackexchange.com/a/182893
+    '''
+    VERT_THRESHOLD = 1
+
+    # Calculate the verticality of the line.
+    X_std, Y_std = line.std(axis=0)
+    verticality = (Y_std / X_std) if (X_std > 0) else np.inf
+
+    X, Y = line.T
+
+    # If the line is too vertical,
+    # rotate it 90 degrees.
+    if verticality > VERT_THRESHOLD:
+        X, Y = Y, X
+
+    # Fit via linear regression.
+    res = linregress(X, Y)
+
+    # Create a unit vector along the regression line.
+    xa = X[0]
+    xb = X[-1]
+    yb = Y[-1]
+
+    fa = res.slope * xa + res.intercept
+    fb = res.slope * xb + res.intercept
+
+    vector = np.array([xb - xa, fb - fa])
+    vector /= np.linalg.norm(vector)
+
+    # Project a point outward along the unit vector
+    # starting from the end of the original line.
+    x_ext, y_ext = ext_len * vector + np.array([xb, yb])
+
+    # If we rotated the line 90 degrees,
+    # rotate the projected point back.
+    if verticality > VERT_THRESHOLD:
+        x_ext, y_ext = y_ext, x_ext
+
+    return x_ext, y_ext
 
 def crop_skeleton(skeleton, contour):
 
