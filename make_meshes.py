@@ -13,13 +13,15 @@ import sys
 from pathlib import Path
 try:
     MASKS = sys.argv[1:]
+    assert len(MASKS) > 0
 except:
     script = sys.argv[0].split('/')[-1]
-    print(f'Usage: {script} MASKS{MASK_FILE_SUFFIX}', file=sys.stderr)
+    print(f'Usage: {script} MASKS', file=sys.stderr)
     print()
-    print('where MASKS is a list of one or more images.')
-    print('Each masks file must also be accompanied by the')
-    print('original .tif file those masks were derived from.')
+    print(f'where MASKS is a list of one or more images ending in: {MASK_FILE_SUFFIX}')
+    print()
+    print('Each masks file must be accompanied (in the same directory)')
+    print('by the original .tif file those masks were derived from.')
     sys.exit(1)
 
 import numpy as np
