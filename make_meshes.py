@@ -48,6 +48,7 @@ def process(mask_file):
 
     npz_file = f'{base_file}.contours.npz'
     png_file = f'{base_file}.png'
+    err_file = f'{base_file}.errors.txt'
 
     if Path(npz_file).exists():
         print(f' - Already processed. Skipping.')
@@ -130,6 +131,10 @@ def process(mask_file):
         except:
             print('   - Mesh generation failed. Skipping this chain.')
             Failed_Chains[chain_id] = cell_ids
+
+            with open(err_file, 'a') as fid:
+                msg = f'Failed to mesh chain {chain_id}.'
+                print(msg, file=fid)
 
     # Save contours to a .npz file.
     print('Saving contours to disk.')
