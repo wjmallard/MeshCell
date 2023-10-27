@@ -52,32 +52,50 @@ def find_square_contour_bbox(contour, pad=5):
 
     return llx, lly, urx, ury
 
-def fit_line(line):
+def extend_line(line, ext_len):
     '''
+    Extend a line by projecting a point outward from its end.
+
     Fit via linear regression, handling the case of near-vertical lines.
 
-    Returns the function of the fitted line.
+    Returns a single point projected outward from the line's end.
 
     Adapted from: https://stats.stackexchange.com/a/182893
     '''
     VERT_THRESHOLD = 1
 
+    # Calculate the verticality of the line.
     X_std, Y_std = line.std(axis=0)
-
     verticality = (Y_std / X_std) if (X_std > 0) else np.inf
 
-    if verticality < VERT_THRESHOLD:
+    X, Y = line.T
 
-        X, Y = line.T
-        res = linregress(X, Y)
-        m = res.slope
-        b = res.intercept
+    # If the line is too vertical,
+    # rotate it 90 degrees.
+    if verticality > VERT_THRESHOLD:
+        X, Y = Y, X
 
-    else:
+    # Fit via linear regression.
+    res = linregress(X, Y)
 
-        Y, X = line.T
-        res = linregress(X, Y)
-        m = 1 / res.slope
-        b = - res.intercept / res.slope
+    # Create a unit vector along the regression line.
+    xa = X[0]
+    xb = X[-1]
+    yb = Y[-1]
 
-    return lambda x: m * x + b
+    fa = res.slope * xa + res.intercept
+    fb = res.slope * xb + res.intercept
+
+    vector = np.array([xb - xa, fb - fa])
+    vector /= np.linalg.norm(vector)
+
+    # Project a point outward along the unit vector
+    # starting from the end of the original line.
+    x_ext, y_ext = ext_len * vector + np.array([xb, yb])
+
+    # If we rotated the line 90 degrees,
+    # rotate the projected point back.
+    if verticality > VERT_THRESHOLD:
+        x_ext, y_ext = y_ext, x_ext
+
+    return x_ext, y_ext

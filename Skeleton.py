@@ -392,29 +392,21 @@ def extend_skeleton(skeleton, contour):
     if Contour.is_point_in_polygon(skeleton[0], contour):
 
         # Extrapolate a point guaranteed to be outside the left end.
-        left_end = skeleton[:NUM_INTERP_POINTS]
-        f = Util.fit_line(left_end)
-        dx, _ = left_end[0] - left_end[-1]
-        x0, _ = left_end[0]
-        x = x0 + np.sign(dx) * extension_length
-        y = f(x)
+        left_end = skeleton[:NUM_INTERP_POINTS][::-1]
+        P_ext = Util.extend_line(left_end, extension_length)
 
         # Add this new exterior point to the left end.
-        skeleton = np.insert(skeleton, 0, [[x, y]], axis=0)
+        skeleton = np.insert(skeleton, 0, [P_ext], axis=0)
 
     # If the "right" end end is inside the contour, extend it.
     if Contour.is_point_in_polygon(skeleton[-1], contour):
 
         # Extrapolate a point guaranteed to be outside the right end.
-        right_end = skeleton[-NUM_INTERP_POINTS:][::-1]
-        f = Util.fit_line(right_end)
-        dx, _ = right_end[0] - right_end[-1]
-        x0, _ = right_end[0]
-        x = x0 + np.sign(dx) * extension_length
-        y = f(x)
+        right_end = skeleton[-NUM_INTERP_POINTS:]
+        P_ext = Util.extend_line(right_end, extension_length)
 
         # Add this new exterior point to the right end.
-        skeleton = np.append(skeleton, [[x, y]], axis=0)
+        skeleton = np.append(skeleton, [P_ext], axis=0)
 
     return skeleton
 
