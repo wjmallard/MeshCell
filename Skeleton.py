@@ -76,7 +76,11 @@ def trim_bent_end_at_front(skeleton):
     # Use the distance threshold specified above.
     dist_from_end = np.linalg.norm(skeleton[0] - skeleton, axis=1)
     close_to_end = dist_from_end < END_TRIMMING_DIST
-    last_to_keep = np.where(np.diff(close_to_end))[0][0]
+
+    # For single cells, the entire cell may be "close to the end",
+    # so just use the entire skeleton.
+    transitions = np.where(np.diff(close_to_end))[0]
+    last_to_keep = transitions[0] if len(transitions) > 0 else len(skeleton)
 
     skel_end = skeleton[:last_to_keep + 1]
 
@@ -257,9 +261,27 @@ def crop_skeleton(skeleton, contour):
     skeleton = skeleton[a-1:b+1]
 
     # Trim the skeleton to precisely the edge of the contour.
+    #
+    # Note: Sometimes, if the skeleton has already been trimmed
+    #       to the edge of a contour, the intersection detection
+    #       algorithm will fail to find the intersection due to
+    #       machine precision issues. To work around this issue,
+    #       we relax the requirement to find two intersections.
+    #
+    #       If one or two are found, we assign each of them to
+    #       the end of the skeleton where the penultimate point
+    #       lies closest to the intersection point.
     intersections = Contour.find_contour_intersections(skeleton, contour)
-    assert len(intersections) == 2
-    skeleton[0] = intersections[0]
-    skeleton[-1] = intersections[1]
+    assert len(intersections) <= 2
+
+    for intersection in intersections:
+
+        dist_from_head = np.linalg.norm(skeleton[1] - intersection)
+        dist_from_tail = np.linalg.norm(skeleton[-2] - intersection)
+
+        if dist_from_head < dist_from_tail:
+            skeleton[0] = intersection
+        else:
+            skeleton[-1] = intersection
 
     return skeleton
