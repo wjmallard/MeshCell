@@ -10,6 +10,39 @@ import numpy as np
 from collections import defaultdict
 from skimage.measure import label as label_connected
 
+def remove_small_cells(cell_masks, min_cell_area):
+    '''
+    Remove cells below a given size threshold.
+    '''
+    # Find area of each cell mask.
+    cell_labels, cell_areas = np.unique(cell_masks, return_counts=True)
+
+    # Remove masks below a minimum size threshold.
+    tiny_labels = cell_labels[cell_areas < min_cell_area]
+
+    for tiny_label in tiny_labels:
+        cell_masks[cell_masks == tiny_label] = 0
+
+    return cell_masks
+
+def remove_edge_cells(cell_masks):
+    '''
+    Remove cells that touch an edge.
+    '''
+    edge_labels = np.concatenate([
+        cell_masks[0,:],
+        cell_masks[-1,:],
+        cell_masks[:,0],
+        cell_masks[:,-1],
+    ])
+
+    edge_labels = np.unique(edge_labels)
+
+    for edge_label in edge_labels:
+        cell_masks[cell_masks == edge_label] = 0
+
+    return cell_masks
+
 def assign_cells_to_chains(cell_masks):
     '''
     Merge cells into chains.

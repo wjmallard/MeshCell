@@ -6,6 +6,8 @@
 @date April 2020
 """
 MASK_FILE_SUFFIX = '.masks_edited.tif'
+MIN_CELL_AREA = 50  # pixels
+
 #
 # Parse command line arguments.
 #
@@ -77,6 +79,12 @@ def process(mask_file):
     except:
         print('Cannot load image. Skipping.')
         return
+
+    #
+    # Remove problematic cell masks.
+    #
+    cell_masks = Mask.remove_small_cells(cell_masks, MIN_CELL_AREA)
+    cell_masks = Mask.remove_edge_cells(cell_masks)
 
     #
     # Generate chain masks.
