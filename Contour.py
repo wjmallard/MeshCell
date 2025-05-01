@@ -228,8 +228,6 @@ def is_point_in_polygon(Point, Polygon):
 
     intersections = (0. <= T) & (T <= 1.) & (0. <= U) & (U <= 1.)
 
-    # Test for interiority.
-    #
     # Test for interiority via a ray casting algorithm.
     #
     # https://en.wikipedia.org/wiki/Point_in_polygon

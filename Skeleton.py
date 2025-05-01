@@ -260,17 +260,21 @@ def crop_skeleton(skeleton, contour):
     # Trim the skeleton to include points just outside the contour.
     skeleton = skeleton[a-1:b+1]
 
-    # Trim the skeleton to precisely the edge of the contour.
+    # Trim the skeleton to precisely end at the contour boundary.
     #
-    # Note: Sometimes, if the skeleton has already been trimmed
-    #       to the edge of a contour, the intersection detection
-    #       algorithm will fail to find the intersection due to
-    #       machine precision issues. To work around this issue,
-    #       we relax the requirement to find two intersections.
+    # This step handles a numerical precision issue:
+    # If the skeleton endpoints are already close to the contour,
+    # the intersection detection algorithm may fail to find exact
+    # intersection points due to machine precision issues.
     #
-    #       If one or two are found, we assign each of them to
-    #       the end of the skeleton where the penultimate point
-    #       lies closest to the intersection point.
+    # To address this issue:
+    # 1. We accept finding either one or two contour intersections.
+    #    Ideally we would always find exactly two: one at each end.
+    # 2. For each intersection we do find, we determine which end of
+    #    the skeleton it belongs to by measuring its distance to the
+    #    second-to-last point at both ends of the skeleton.
+    # 3. We then replace each skeleton endpoint with the appropriate
+    #    intersection point.
     intersections = Contour.find_contour_intersections(skeleton, contour)
     assert len(intersections) <= 2
 
