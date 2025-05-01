@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author William Mallard (wmallard)
+@author Shicong Xie (xies)
+@date April 2020
+"""
+MASK_FILE_SUFFIX = '.masks_edited.tif'
+MIN_CELL_AREA = 50  # pixels
+
+#
+# Parse command line arguments.
+#
+import sys
+from pathlib import Path
+try:
+    MASKS = sys.argv[1:]
+    assert len(MASKS) > 0
+except:
+    script = sys.argv[0].split('/')[-1]
+    print(f'Usage: {script} MASKS', file=sys.stderr)
+    print()
+    print(f'where MASKS is a list of one or more images ending in: {MASK_FILE_SUFFIX}')
+    print()
+    print('Each masks file must be accompanied (in the same directory)')
+    print('by the original .tif file those masks were derived from.')
+    sys.exit(1)
+
+import numpy as np
+from skimage import io
+import matplotlib.pyplot as plt
+
+import Mask
+import Contour
+import Skeleton
+import Mesh
+import Util
+
+def process(mask_file):
+
+    #
+    # Validate input.
+    #
+    if not mask_file.endswith(MASK_FILE_SUFFIX):
+        print(' - Invalid mask file name. Skipping.')
+        return
+
+    base_file = mask_file[:-len(MASK_FILE_SUFFIX)]
+    image_file = f'{base_file}.tif'
+
+    npz_file = f'{base_file}.chain_contours.npz'
+    png_file = f'{base_file}.chain_contours.png'
+    err_file = f'{base_file}.chain_contours.errors.txt'
+
+    if Path(npz_file).exists():
+        print(f' - Already processed. Skipping.')
+        return
+
+    if not Path(mask_file).exists():
+        print(' - Mask file does not exist. Skipping.')
+        return
+
+    if not Path(image_file).exists():
+        print(' - Original image file does not exist. Skipping.')
+        return
+
+    #
+    # Load images.
+    #
+    try:
+        print('Loading images.')
+
+        print(f' - {image_file}')
+        image = io.imread(image_file, as_gray=True)
+
+        print(f' - {mask_file}')
+        cell_masks = io.imread(mask_file, as_gray=True)
+
+    except:
+        print('Cannot load image. Skipping.')
+        return
+
+    #
+    # Remove problematic cell masks.
+    #
+    cell_masks = Mask.remove_small_cells(cell_masks, MIN_CELL_AREA)
+    cell_masks = Mask.remove_edge_cells(cell_masks)
+
+    #
+    # Generate chain masks.
+    #
+    print('Generating chain masks.')
+    chain_masks, chains_to_cells = Mask.assign_cells_to_chains(cell_masks)
+
+    #
+    # Generate contours, skeletons, and ribs.
+    #
+    print('Generating contours, skeletons, and ribs.')
+
+    Chain_Contours = Contour.ContourGenerator(image, chain_masks)
+
+    Chains = {}
+    Failed_Chains = {}
+
+    chain_ids = np.unique(chain_masks)
+    chain_ids = chain_ids[chain_ids > 0]
+
+    for chain_id in chain_ids:
+
+        print(f' - Chain {chain_id}')
+
+        try:
+
+            chain_contour = Chain_Contours.generate(chain_id)
+            chain_skeleton = Skeleton.generate(chain_contour)
+
+            rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(chain_contour, chain_skeleton)
+
+            Chains[chain_id] = {
+                'Contour': chain_contour,
+                'Skeleton': chain_skeleton,
+                'Ribs': {
+                    'Start': rib_starts,
+                    'Top': top_intersections,
+                    'Bot': bot_intersections,
+                }
+            }
+
+        except:
+            print('   - Mesh generation failed. Skipping this chain.')
+            Failed_Chains[chain_id] = chain_id
+
+            with open(err_file, 'a') as fid:
+                msg = f'Failed to mesh chain {chain_id}.'
+                print(msg, file=fid)
+
+    # Save contours to a .npz file.
+    print('Saving contours to disk.')
+    print(f' - {npz_file}')
+    np.savez(npz_file,
+             Chains=Chains)
+
+    # Save diagnostic plot to a .png file.
+    print('Saving plot to disk.')
+    print(f' - {png_file}')
+    save_diagnostic_plot(png_file, image, Chains)
+
+def save_diagnostic_plot(outfile, image, Cells):
+
+    plt.close('all')
+
+    dpi = 100
+    y, x = np.array(image.shape) / dpi
+
+    fig = plt.figure(figsize=(x, y), dpi=dpi)
+    axis_args = {
+        'xticks': [],
+        'yticks': [],
+        'xticklabels': [],
+        'yticklabels': [],
+    }
+
+    # Rectangle coordinates: [left, bottom, width, height]
+    ax = fig.add_axes([0, 0, 1, 1], **axis_args)
+    ax.imshow(image, cmap='Greys_r')
+
+    for cell_id, Cell in Cells.items():
+
+        contour = Cell['Contour']
+        skeleton = Cell['Skeleton']
+        rib_starts = Cell['Ribs']['Start']
+        top_intersections = Cell['Ribs']['Top']
+        bot_intersections = Cell['Ribs']['Bot']
+
+        for i in range(len(rib_starts)):
+
+            xs, ys = rib_starts[i]
+            xt, yt = top_intersections[i]
+            xb, yb = bot_intersections[i]
+
+            plt.plot([xs, xt], [ys, yt], 'green', alpha=.2)
+            plt.plot([xs, xb], [ys, yb], 'green', alpha=.2)
+
+        ax.plot(*contour.T, 'k-')
+        ax.plot(*skeleton.T, 'r-')
+
+        x, y = skeleton[len(skeleton)//2]
+        s = str(cell_id)
+        ax.text(x, y, s,
+                size=12,
+                ha='center',
+                va='center')
+
+    # Save plot to disk.
+    plt.savefig(outfile)
+
+
+filenames = Util.natural_sort(MASKS)
+
+for n, filename in enumerate(filenames):
+
+    print(f'[{n+1}/{len(MASKS)}] {filename}')
+    process(filename)
+    print()
+
+print('Done.')
