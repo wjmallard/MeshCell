@@ -49,6 +49,14 @@ def select_longest_contour(contours):
 
     return sorted(contours, key=len)[-1]
 
+def find_contour_length(contour):
+
+    dxy = np.diff(contour, axis=0)
+    dC = np.linalg.norm(dxy, axis=1)
+    C_length = np.sum(dC)
+
+    return C_length
+
 def evenly_distribute_contour_points(XY_old):
 
     assert XY_old.shape[1] == 2
