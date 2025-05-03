@@ -102,6 +102,7 @@ def process(mask_file):
 
     Cells = {}
     Failed_Chains = {}
+    Chains_to_Cells = dict(chains_to_cells)
 
     chain_ids = np.unique(chain_masks)
     chain_ids = chain_ids[chain_ids > 0]
@@ -147,7 +148,7 @@ def process(mask_file):
     # Save contours to a .npz file.
     print('Saving contours to disk.')
     print(f' - {npz_file}')
-    np.savez(npz_file, Cells=Cells, Failed_Chains=Failed_Chains)
+    np.savez(npz_file, Cells=Cells, Chains_to_Cells=Chains_to_Cells, Failed_Chains=Failed_Chains)
 
     # Save diagnostic plot to a .png file.
     print('Saving plot to disk.')
