@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author William Mallard (wmallard)
 @author Shicong Xie (xies)
@@ -266,7 +265,8 @@ class ContourGenerator:
     def generate(self, cell_id):
 
         # Get the pixel coordinates of current cell's boundary,
-        # returns X and Y that wraps around contour (no break b/w end and beginning)
+        # returns X and Y that wraps around contour
+        # (no break between end and beginning)
         XY_old = get_cell_boundary_coords(self.masks, cell_id)
 
         for i in range(max_iter):

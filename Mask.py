@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author William Mallard (wmallard)
 @author Shicong Xie (xies)
@@ -47,6 +46,7 @@ def assign_cells_to_chains(cell_masks):
     '''
     Merge cells into chains.
     '''
+    # Collect all non-background mask labels.
     cell_ids = np.unique(cell_masks)
     cell_ids = cell_ids[cell_ids > 0]
 

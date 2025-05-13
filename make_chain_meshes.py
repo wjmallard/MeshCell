@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author William Mallard (wmallard)
 @author Shicong Xie (xies)
@@ -20,7 +19,7 @@ except:
     script = sys.argv[0].split('/')[-1]
     print(f'Usage: {script} MASKS', file=sys.stderr)
     print()
-    print(f'where MASKS is a list of one or more images ending in: {MASK_FILE_SUFFIX}')
+    print(f'where MASKS is a list of images ending in: {MASK_FILE_SUFFIX}')
     print()
     print('Each masks file must be accompanied (in the same directory)')
     print('by the original .tif file those masks were derived from.')
@@ -114,7 +113,8 @@ def process(mask_file):
             chain_contour = Chain_Contours.generate(chain_id)
             chain_skeleton = Skeleton.generate(chain_contour)
 
-            rib_starts, top_intersections, bot_intersections = Mesh.make_ribs(chain_contour, chain_skeleton)
+            rib_starts, top_intersections, bot_intersections \
+                = Mesh.make_ribs(chain_contour, chain_skeleton)
 
             Chains[chain_id] = {
                 'Contour': chain_contour,
@@ -137,8 +137,10 @@ def process(mask_file):
     # Save contours to a .npz file.
     print('Saving contours to disk.')
     print(f' - {npz_file}')
-    np.savez(npz_file,
-             Chains=Chains)
+    np.savez(
+        npz_file,
+        Chains=Chains,
+    )
 
     # Save diagnostic plot to a .png file.
     print('Saving plot to disk.')

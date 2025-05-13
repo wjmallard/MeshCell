@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author William Mallard (wmallard)
 @author Shicong Xie (xies)
@@ -176,7 +175,8 @@ def extend_skeleton(skeleton, contour):
 
     # Calculate an extension length that guarantees a projected
     # point will definitely lie outside of the contour.
-    extension_length = (contour.max(axis=0) - contour.min(axis=0)).max().round().astype(int)
+    contour_dimensions = np.ptp(contour, axis=0)
+    extension_length = np.ceil(contour_dimensions.max()).astype(int)
 
     # If the "left" end is inside the contour, extend it.
     if Contour.is_point_in_polygon(skeleton[0], contour):
@@ -188,7 +188,7 @@ def extend_skeleton(skeleton, contour):
         # Add this new exterior point to the left end.
         skeleton = np.insert(skeleton, 0, [P_ext], axis=0)
 
-    # If the "right" end end is inside the contour, extend it.
+    # If the "right" end is inside the contour, extend it.
     if Contour.is_point_in_polygon(skeleton[-1], contour):
 
         # Extrapolate a point guaranteed to be outside the right end.
@@ -203,9 +203,7 @@ def extend_skeleton(skeleton, contour):
 def extend_line(line, ext_len):
     '''
     Extend a line by projecting a point outward from its end.
-
     Fit via linear regression, handling the case of near-vertical lines.
-
     Returns a single point projected outward from the line's end.
 
     Adapted from: https://stats.stackexchange.com/a/182893
@@ -251,8 +249,7 @@ def extend_line(line, ext_len):
 def crop_skeleton(skeleton, contour):
 
     # Identify all points on the skeleton inside the contour.
-    is_inside = lambda p: Contour.is_point_in_polygon(p, contour)
-    interior_points = list(map(is_inside, skeleton))
+    interior_points = [Contour.is_point_in_polygon(p, contour) for p in skeleton]
 
     # Find the first and last skeleton indices inside the contour.
     a, b = 1 + np.where(np.diff(interior_points))[0]

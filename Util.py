@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed May 20 23:53:08 2020
-
-@author: wmallard
+@author William Mallard (wmallard)
+@author Shicong Xie (xies)
+@date April 2020
 """
 import numpy as np
 from skimage import measure
 import re
 
 def natural_sort(L):
+    '''
+    Adapted from Jeff Atwood's "Sorting for Humans : Natural Sort Order"
+    https://blog.codinghorror.com/sorting-for-humans-natural-sort-order/
+    '''
     convert = lambda text: int(text) if text.isdigit() else text
     alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
     return sorted(L, key=alphanum_key)
